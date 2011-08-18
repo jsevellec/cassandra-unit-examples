@@ -1,4 +1,4 @@
-package org.cassandraunit;
+package org.cassandraunit.test;
 
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
@@ -6,12 +6,18 @@ import me.prettyprint.hector.api.Cluster;
 import me.prettyprint.hector.api.Keyspace;
 import me.prettyprint.hector.api.factory.HFactory;
 
+import org.cassandraunit.DataLoader;
 import org.cassandraunit.dataset.xml.ClassPathXmlDataSet;
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ManuallyStartAndLoadSimpleDataSetTest {
+/**
+ * 
+ * @author Jeremy Sevellec
+ * 
+ */
+public class ManuallyStartAndLoadSimpleXmlDataSetTest {
 
 	@Before
 	public void before() throws Exception {

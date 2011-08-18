@@ -1,17 +1,23 @@
-package org.cassandraunit;
+package org.cassandraunit.test;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
-import org.cassandraunit.dataset.IDataSet;
+import org.cassandraunit.AbstractCassandraUnit4TestCase;
+import org.cassandraunit.dataset.DataSet;
 import org.cassandraunit.dataset.xml.ClassPathXmlDataSet;
 import org.junit.Test;
 
-public class AutomaticallyStartAndLoadExtendedDataSetTest extends AbstractCassandraUnit4TestCase {
+/**
+ * 
+ * @author Jeremy Sevellec
+ *
+ */
+public class AutomaticallyStartAndLoadExtendedXmlDataSetTest extends AbstractCassandraUnit4TestCase {
 
 	@Override
-	public IDataSet getDataSet() {
+	public DataSet getDataSet() {
 		return new ClassPathXmlDataSet("extendedDataSet.xml");
 	}
 
@@ -19,6 +25,7 @@ public class AutomaticallyStartAndLoadExtendedDataSetTest extends AbstractCassan
 	public void shouldHaveLoadAnExtendDataSet() throws Exception {
 		assertThat(getKeyspace(), notNullValue());
 		assertThat(getKeyspace().getKeyspaceName(), is("otherKeyspaceName"));
+		/* and query all what you want */
 	}
 
 }
