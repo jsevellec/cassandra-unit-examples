@@ -1,0 +1,45 @@
+name: otherKeyspaceName
+replicationFactor: 1
+strategy: org.apache.cassandra.locator.LocalStrategy
+columnFamilies:
+- name: beautifulColumnFamilyName
+  type: STANDARD
+  keyType: UTF8Type
+  comparatorType: LongType
+  defaultColumnValueType: UTF8Type
+  rows:
+  - key: key10
+    columns:
+    - {name: 11, value: value11}
+    - {name: 12, value: value12}
+  - key: key20
+    columns:
+    - {name: 21, value: value11}
+    - {name: 12, value: uuid(13816710-1dd2-11b2-879a-782bcb80ff6a)}
+- name: otherBeautifulColumnFamilyName
+  type: SUPER
+  keyType: TimeUUIDType
+  comparatorType: UTF8Type
+  subComparatorType: LongType
+  defaultColumnValueType: UTF8Type
+  rows:
+  - key: 13816710-1dd2-11b2-879a-782bcb80ff6a
+    superColumns:
+    - name: name11
+      columns:
+      - {name: 111, value: value111}
+      - {name: 112, value: value112}
+    - name: name12
+      columns:
+      - {name: 121, value: value121}
+      - {name: 122, value: value122}
+  - key: 13818e20-1dd2-11b2-879a-782bcb80ff6a
+    superColumns:
+    - name: name21
+      columns:
+      - {name: 211, value: value211}
+      - {name: 212, value: value212}
+    - name: name22
+      columns:
+      - {name: 221, value: value122}
+      - {name: 122, value: integer(231)}

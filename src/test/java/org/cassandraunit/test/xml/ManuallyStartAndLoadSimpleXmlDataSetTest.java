@@ -1,4 +1,4 @@
-package org.cassandraunit.test;
+package org.cassandraunit.test.xml;
 
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;

@@ -1,4 +1,4 @@
-package org.cassandraunit.test;
+package org.cassandraunit.test.xml;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -6,7 +6,7 @@ import static org.junit.Assert.assertThat;
 
 import org.cassandraunit.AbstractCassandraUnit4TestCase;
 import org.cassandraunit.dataset.DataSet;
-import org.cassandraunit.dataset.json.ClassPathJSONDataSet;
+import org.cassandraunit.dataset.xml.ClassPathXmlDataSet;
 import org.junit.Test;
 
 /**
@@ -14,17 +14,17 @@ import org.junit.Test;
  * @author Jeremy Sevellec
  *
  */
-public class AutomaticallyStartAndLoadSimpleJSONDataSetTest extends AbstractCassandraUnit4TestCase {
+public class AutomaticallyStartAndLoadExtendedXmlDataSetTest extends AbstractCassandraUnit4TestCase {
 
 	@Override
 	public DataSet getDataSet() {
-		return new ClassPathJSONDataSet("simpleDataSet.json");
+		return new ClassPathXmlDataSet("extendedDataSet.xml");
 	}
 
 	@Test
-	public void shouldHaveLoadASimpleDataSet() throws Exception {
+	public void shouldHaveLoadAnExtendDataSet() throws Exception {
 		assertThat(getKeyspace(), notNullValue());
-		assertThat(getKeyspace().getKeyspaceName(), is("beautifulKeyspaceName"));
+		assertThat(getKeyspace().getKeyspaceName(), is("otherKeyspaceName"));
 		/* and query all what you want */
 	}
 
