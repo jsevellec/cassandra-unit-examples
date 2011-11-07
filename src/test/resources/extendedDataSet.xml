@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <keyspace xmlns="http://xml.dataset.cassandraunit.org">
 	<name>otherKeyspaceName</name>
-	<strategy>org.apache.cassandra.locator.LocalStrategy</strategy>
+	<strategy>org.apache.cassandra.locator.SimpleStrategy</strategy>
 	<replicationFactor>1</replicationFactor>
 	<columnFamilies>
 		<columnFamily>

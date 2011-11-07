@@ -1,7 +1,7 @@
 {
     "name" : "otherKeyspaceName",
     "replicationFactor" : 1,
-    "strategy" : "org.apache.cassandra.locator.LocalStrategy",
+    "strategy" : "org.apache.cassandra.locator.SimpleStrategy",
     "columnFamilies" : [{
         "name" : "beautifulColumnFamilyName",
         "type" : "STANDARD",
