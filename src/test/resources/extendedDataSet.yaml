@@ -43,3 +43,20 @@ columnFamilies:
       columns:
       - {name: 221, value: value122}
       - {name: 122, value: integer(231)}
+- name: columnFamilyWithSecondaryIndex
+  type: STANDARD
+  keyType: UTF8Type
+  comparatorType: UTF8Type
+  defaultColumnValueType: UTF8Type
+  columnsMetadata:
+  - {name: firstName, validationClass: UTF8Type, indexType: KEYS}
+  - {name: age, validationClass: LongType, indexType: KEYS} 
+  rows:
+  - key: key10
+    columns:
+    - {name: firstName, value: me}
+    - {name: age, value: long(70)}
+  - key: key11
+    columns:
+    - {name: firstName, value: me}
+    - {name: age, value: long(30)}

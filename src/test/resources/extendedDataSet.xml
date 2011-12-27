@@ -94,6 +94,44 @@
 				</superColumn>
 			</row>
 		</columnFamily>
-
+		<columnFamily>
+			<name>columnFamilyWithSecondaryIndex</name>
+			<type>STANDARD</type>
+			<keyType>UTF8Type</keyType>
+			<comparatorType>UTF8Type</comparatorType>
+			<defaultColumnValueType>UTF8Type</defaultColumnValueType>
+			<columnMetadata>
+				<name>firstName</name>
+				<validationClass>UTF8Type</validationClass>
+				<indexType>KEYS</indexType>
+			</columnMetadata>
+			<columnMetadata>
+				<name>age</name>
+				<validationClass>LongType</validationClass>
+				<indexType>KEYS</indexType>
+			</columnMetadata>
+			<row>
+				<key>key10</key>
+				<column>
+					<name>firstName</name>
+					<value>Chuck</value>
+				</column>
+				<column>
+					<name>age</name>
+					<value>long(70)</value>
+				</column>
+			</row>
+			<row>
+				<key>key11</key>
+				<column>
+					<name>firstName</name>
+					<value>me</value>
+				</column>
+				<column>
+					<name>age</name>
+					<value>long(30)</value>
+				</column>
+			</row>
+		</columnFamily>
 	</columnFamilies>
 </keyspace>
