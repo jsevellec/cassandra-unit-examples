@@ -1,6 +1,5 @@
 <?xml version="1.0"?>
-<project
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
 	xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.cassandraunit</groupId>
@@ -9,16 +8,8 @@
 	<name>cassandra-unit-examples</name>
 	<url>http://maven.apache.org</url>
 	<repositories>
-		<!-- 
-		<repository>
-			<id>sonatype-oss-snapshot</id>
-			<url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-			<snapshots>
-				<enabled>true</enabled>
-				<updatePolicy>daily</updatePolicy>
-			</snapshots>
-		</repository>
-		 -->
+		<!-- <repository> <id>sonatype-oss-snapshot</id> <url>https://oss.sonatype.org/content/repositories/snapshots/</url> <snapshots> 
+			<enabled>true</enabled> <updatePolicy>daily</updatePolicy> </snapshots> </repository> -->
 	</repositories>
 	<dependencies>
 		<dependency>
@@ -30,7 +21,7 @@
 		<dependency>
 			<groupId>org.cassandraunit</groupId>
 			<artifactId>cassandra-unit</artifactId>
-			<version>1.0.1.2</version>
+			<version>1.0.1.3</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

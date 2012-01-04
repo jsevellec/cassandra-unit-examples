@@ -4,6 +4,9 @@
 	<columnFamilies>
 		<columnFamily>
 			<name>beautifulColumnFamilyName</name>
+			<keyType>UTF8Type</keyType>
+			<comparatorType>UTF8Type</comparatorType>
+			<defaultColumnValueType>UTF8Type</defaultColumnValueType>
 			<row>
 				<key>key10</key>
 				<column>
@@ -26,6 +29,10 @@
 		<columnFamily>
 			<name>otherColumnFamilyName</name>
 			<type>SUPER</type>
+			<keyType>UTF8Type</keyType>
+			<comparatorType>UTF8Type</comparatorType>
+			<subComparatorType>UTF8Type</subComparatorType>
+			<defaultColumnValueType>UTF8Type</defaultColumnValueType>
 			<row>
 				<key>key10</key>
 				<superColumn>

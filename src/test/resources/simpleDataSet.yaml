@@ -2,23 +2,23 @@ name: beautifulKeyspaceName
 columnFamilies:
 - name: beautifulColumnFamilyName
   rows:
-  - key: key10
+  - key: 10
     columns:
-    - {name: name11, value: value11}
-    - {name: name12, value: value12}
-  - key: key20
+    - {name: 11, value: 11}
+    - {name: 12, value: 12}
+  - key: 20
     columns:
-    - {name: name21, value: value21}
+    - {name: 21, value: 21}
 - name: otherColumnFamilyName
   type: SUPER
   rows:
-  - key: key10
+  - key: 10
     superColumns:
-    - name: supername110
+    - name: 1100
       columns:
-      - {name: name111, value: value111}
-      - {name: name112, value: value112}
-    - name: supername120
+      - {name: 1110, value: 1110}
+      - {name: 1120, value: 1120}
+    - name: 1200
       columns:
-      - {name: name121, value: value121}
-      - {name: name122, value: value122}
+      - {name: 1210, value: 1210}
+      - {name: 1220, value: 1220}
