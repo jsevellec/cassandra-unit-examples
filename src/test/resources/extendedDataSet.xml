@@ -9,16 +9,15 @@
 			<type>STANDARD</type>
 			<keyType>UTF8Type</keyType>
 			<comparatorType>LongType</comparatorType>
-			<defaultColumnValueType>UTF8Type</defaultColumnValueType>
 			<row>
 				<key>key10</key>
 				<column>
 					<name>11</name>
-					<value>value11</value>
+					<value>utf8(value11)</value>
 				</column>
 				<column>
 					<name>12</name>
-					<value>value12</value>
+					<value>utf8(value12)</value>
 				</column>
 			</row>
 			<row>
@@ -89,7 +88,7 @@
 					<name>name23</name>
 					<column>
 						<name>231</name>
-						<value>integer(231)</value>
+						<value>value231</value>
 					</column>
 				</superColumn>
 			</row>

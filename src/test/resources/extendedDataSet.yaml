@@ -6,15 +6,14 @@ columnFamilies:
   type: STANDARD
   keyType: UTF8Type
   comparatorType: LongType
-  defaultColumnValueType: UTF8Type
   rows:
   - key: key10
     columns:
-    - {name: 11, value: value11}
-    - {name: 12, value: value12}
+    - {name: 11, value: utf8(value11)}
+    - {name: 12, value: utf8(value12)}
   - key: key20
     columns:
-    - {name: 21, value: value11}
+    - {name: 21, value: utf8(value11)}
     - {name: 12, value: uuid(13816710-1dd2-11b2-879a-782bcb80ff6a)}
 - name: otherBeautifulColumnFamilyName
   type: SUPER
@@ -42,7 +41,7 @@ columnFamilies:
     - name: name22
       columns:
       - {name: 221, value: value122}
-      - {name: 122, value: integer(231)}
+      - {name: 122, value: value231}
 - name: columnFamilyWithSecondaryIndex
   type: STANDARD
   keyType: UTF8Type

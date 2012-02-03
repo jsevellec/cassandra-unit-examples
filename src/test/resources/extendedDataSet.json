@@ -7,23 +7,22 @@
         "type" : "STANDARD",
         "keyType" : "UTF8Type",
         "comparatorType" : "LongType",
-        "defaultColumnValueType" : "UTF8Type",
         "rows" : [{
             "key" : "key10",
             "columns" : [{
                 "name" : "11",
-                "value" : "value11"
+                "value" : "utf8(value11)"
             },
             {
                 "name" : "12",
-                "value" : "value12"
+                "value" : "utf8(value12)"
             }]
         },
         {
             "key" : "key20",
             "columns" : [{
                 "name" : "21",
-                "value" : "value11"
+                "value" : "utf8(value11)"
             },
             {
                 "name" : "12",
@@ -84,7 +83,7 @@
                 },
                 {
                     "name" : "122",
-                    "value" : "integer(231)"
+                    "value" : "value231"
                 }]
             }]
         }]
