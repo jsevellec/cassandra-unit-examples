@@ -132,5 +132,23 @@
 				</column>
 			</row>
 		</columnFamily>
+		<columnFamily>
+			<name>columnFamilyWithCompositeType</name>
+			<type>STANDARD</type>
+			<keyType>CompositeType(LongType,UTF8Type)</keyType>
+			<comparatorType>CompositeType(UTF8Type,IntegerType,UTF8Type)</comparatorType>
+			<defaultColumnValueType>UTF8Type</defaultColumnValueType>
+			<row>
+				<key>10:azerty</key>
+				<column>
+					<name>aa:10:aa</name>
+					<value>Chuck</value>
+				</column>
+				<column>
+					<name>aa:10:ab</name>
+					<value>Larry</value>
+				</column>
+			</row>
+		</columnFamily>
 	</columnFamilies>
 </keyspace>

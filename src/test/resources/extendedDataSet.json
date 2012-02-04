@@ -95,14 +95,14 @@
         "comparatorType" : "UTF8Type",
         "defaultColumnValueType" : "UTF8Type",
         "columnsMetadata" : [{
-        	"name" : "firstName",
-        	"validationClass" : "UTF8Type",
-        	"indexType" : "KEYS"
+            "name" : "firstName",
+            "validationClass" : "UTF8Type",
+            "indexType" : "KEYS"
         },
         {
-        	"name" : "age",
-        	"validationClass" : "LongType",
-        	"indexType" : "KEYS"
+            "name" : "age",
+            "validationClass" : "LongType",
+            "indexType" : "KEYS"
         }],
         "rows" : [{
             "key" : "key10",
@@ -124,6 +124,24 @@
             {
                 "name" : "age",
                 "value" : "long(30)"
+            }]
+        }]
+    },
+    {
+        "name" : "columnFamilyWithCompositeType",
+        "type" : "STANDARD",
+        "keyType" : "CompositeType(LongType,UTF8Type)",
+        "comparatorType" : "CompositeType(UTF8Type,IntegerType,UTF8Type)",
+        "defaultColumnValueType" : "UTF8Type",
+        "rows" : [{
+            "key" : "10:azerty",
+            "columns" : [{
+                "name" : "aa:10:aa",
+                "value" : "Chuck"
+            },
+            {
+                "name" : "aa:10:ab",
+                "value" : "Larry"
             }]
         }]
     }]

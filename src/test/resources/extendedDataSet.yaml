@@ -59,3 +59,13 @@ columnFamilies:
     columns:
     - {name: firstName, value: me}
     - {name: age, value: long(30)}
+- name: columnFamilyWithCompositeType
+  type: STANDARD
+  keyType: CompositeType(LongType,UTF8Type)
+  comparatorType: CompositeType(UTF8Type,IntegerType,UTF8Type)
+  defaultColumnValueType: UTF8Type 
+  rows:
+  - key: "10:azerty"
+    columns:
+    - {name: "aa:10:aa", value: Chuck}
+    - {name: "aa:10:ab", value: Larry}
