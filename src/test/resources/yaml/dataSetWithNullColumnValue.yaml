@@ -1,0 +1,12 @@
+name: keyspaceWithNullColumnValue
+columnFamilies:
+- name: columnFamilyWithNullColumnValue
+  keyType: UTF8Type
+  comparatorType: UTF8Type
+  rows:
+  - key: rowWithNullColumnValue
+    columns:
+    - {name: columnWithNullColumnValue1}
+    - {name: columnWithNullColumnValue2}
+    - {name: columnWithNullColumnValue3}
+    - {name: columnWithNullColumnValue4}
