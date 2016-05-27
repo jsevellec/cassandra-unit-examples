@@ -110,7 +110,7 @@
                 <version>2.19.1</version>
                 <configuration>
                     <workingDirectory>${project.basedir}</workingDirectory>
-                    <forkMode>once</forkMode>
+                    <forkMode>always</forkMode>
                 </configuration>
             </plugin>
         </plugins>
