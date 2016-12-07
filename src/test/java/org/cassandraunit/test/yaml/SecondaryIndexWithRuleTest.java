@@ -41,16 +41,6 @@ public class SecondaryIndexWithRuleTest {
 		assertThatWeGetOneRowWithKey10(rows);
 	}
 
-	@Test
-	public void shouldQueryUsingSecondaryIndexWithCQL() throws Exception {
-		CqlQuery<String, String, ByteBuffer> query = new CqlQuery<String, String, ByteBuffer>(cassandraUnit.keyspace,
-				StringSerializer.get(), StringSerializer.get(), ByteBufferSerializer.get());
-		query.setQuery("SELECT * FROM columnFamilyWithSecondaryIndex where firstName='me' and age > 31");
-		QueryResult<CqlRows<String, String, ByteBuffer>> result = query.execute();
-		List<Row<String, String, ByteBuffer>> rows = result.get().getList();
-		assertThatWeGetOneRowWithKey10(rows);
-	}
-
 	private void assertThatWeGetOneRowWithKey10(List<Row<String, String, ByteBuffer>> rows) {
 		assertThat(rows.size(), is(1));
 		assertThat(rows.get(0).getKey(), is("key10"));
