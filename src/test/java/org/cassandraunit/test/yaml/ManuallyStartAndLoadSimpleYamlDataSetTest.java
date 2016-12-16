@@ -23,7 +23,7 @@ public class ManuallyStartAndLoadSimpleYamlDataSetTest {
 	public void before() throws Exception {
 		EmbeddedCassandraServerHelper.startEmbeddedCassandra();
 		DataLoader dataLoader = new DataLoader("TestCluster", "localhost:9171");
-		dataLoader.load(new ClassPathYamlDataSet("simpleDataSet.json"));
+		dataLoader.load(new ClassPathYamlDataSet("simpleDataSet.yaml"));
 	}
 
 	@Test
