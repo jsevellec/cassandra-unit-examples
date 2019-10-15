@@ -1,11 +1,11 @@
 package org.cassandraunit.test.spring.cql;
 
-import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Session;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
 import org.cassandraunit.spring.CassandraDataSet;
 import org.cassandraunit.spring.CassandraUnitTestExecutionListener;
 import org.cassandraunit.spring.EmbeddedCassandra;
+import org.cassandraunit.utils.EmbeddedCassandraServerHelper;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.test.context.TestExecutionListeners;
@@ -22,11 +22,7 @@ public class SpringCQLScriptLoadTest {
 
     @Test
     public void should_have_started_and_execute_cql_script() throws Exception {
-        Cluster cluster = Cluster.builder()
-                .addContactPoints("127.0.0.1")
-                .withPort(9142)
-                .build();
-        Session session = cluster.connect("cassandra_unit_keyspace");
+        CqlSession session = EmbeddedCassandraServerHelper.getSession();
 
         ResultSet result = session.execute("select * from mytable WHERE id='myKey01'");
         assertThat(result.iterator().next().getString("value"), is("myValue01"));

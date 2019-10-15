@@ -1,37 +1,33 @@
 package org.cassandraunit.test;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
-
-import java.io.IOException;
-
-import me.prettyprint.cassandra.service.CassandraHostConfigurator;
-import me.prettyprint.hector.api.Cluster;
-import me.prettyprint.hector.api.ddl.KeyspaceDefinition;
-import me.prettyprint.hector.api.factory.HFactory;
-
+import com.datastax.oss.driver.api.core.metadata.Metadata;
+import com.datastax.oss.driver.api.core.metadata.Node;
 import org.apache.cassandra.exceptions.ConfigurationException;
 import org.apache.thrift.transport.TTransportException;
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+
 public class ManuallyStartWithMyOwnCassandraYaml {
 
-	@Before
-	public void before() throws TTransportException, IOException, InterruptedException, ConfigurationException {
-		EmbeddedCassandraServerHelper.startEmbeddedCassandra("another-cassandra.yaml");
-	}
-
-	@Test
-	public void shouldHaveAnEmbeddedCassandraStartOn9175Port() throws Exception {
-		Cluster cluster = HFactory.getOrCreateCluster("TestCluster", new CassandraHostConfigurator("localhost:9175"));
-		assertThat(cluster.getConnectionManager().getActivePools().size(), is(1));
-		KeyspaceDefinition keyspaceDefinition = cluster.describeKeyspace("system");
-		assertThat(keyspaceDefinition, notNullValue());
-		assertThat(keyspaceDefinition.getReplicationFactor(), is(1));
-
-	}
+//	@Before
+//	public void before() throws TTransportException, IOException, InterruptedException, ConfigurationException {
+//		EmbeddedCassandraServerHelper.startEmbeddedCassandra("another-cassandra.yaml");
+//	}
+//
+//	@Test
+//	public void shouldHaveAnEmbeddedCassandraStartOn9143Port() throws Exception {
+//		com.datastax.oss.driver.api.core.CqlSession session = EmbeddedCassandraServerHelper.getSession();
+//		Metadata metadata = session.getMetadata();
+//		String systemKeyspaceName = metadata.getKeyspace("system").get().getName().toString();
+//		assertThat(systemKeyspaceName,is("system"));
+//		Node node = (Node) metadata.getNodes().values().toArray()[0];
+//		assertThat(node.getEndPoint().toString(),is("localhost/127.0.0.1:9143"));
+//	}
 
 }
