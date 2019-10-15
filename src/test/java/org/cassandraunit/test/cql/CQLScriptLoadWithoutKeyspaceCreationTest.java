@@ -9,14 +9,14 @@ import org.junit.Test;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class CQLScriptLoadTest {
+public class CQLScriptLoadWithoutKeyspaceCreationTest {
 
     @Rule
-    public CassandraCQLUnit cassandraCQLUnit = new CassandraCQLUnit(new ClassPathCQLDataSet("simple.cql","keyspaceNameToCreate"));
+    public CassandraCQLUnit cassandraCQLUnit = new CassandraCQLUnit(new ClassPathCQLDataSet("simpleWithCreateKeyspace.cql",false));
 
     @Test
     public void should_have_started_and_execute_cql_script() throws Exception {
-        ResultSet result = cassandraCQLUnit.session.execute("select * from mytable WHERE id='myKey01'");
+        ResultSet result = cassandraCQLUnit.session.execute("select * from mykeyspace.mytable WHERE id='myKey01'");
         assertThat(result.iterator().next().getString("value"), is("myValue01"));
 
 
