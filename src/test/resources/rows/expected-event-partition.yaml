@@ -1,0 +1,14 @@
+# Used with scope = MENTIONED_PARTITIONS: only the partitions named here are asserted, and still
+# strictly inside each one. The 2026-09-20 partition is left alone, whatever it holds.
+#
+# The order matters here because the example also asks for checkClusteringOrder: the table is
+# CLUSTERING ORDER BY (at DESC), so the later timestamp comes first.
+
+event:
+  - day: "2026-09-19"
+    at: "2026-09-19T12:00:00Z"
+    kind: "start"
+
+  - day: "2026-09-19"
+    at: "2026-09-19T10:00:00Z"
+    kind: "retry"

@@ -22,10 +22,12 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>17</maven.compiler.release>
 
-        <cassandra-unit.version>5.0.0-SNAPSHOT</cassandra-unit.version>
+        <cassandra-unit.version>5.1.0</cassandra-unit.version>
         <junit.jupiter.version>5.14.4</junit.jupiter.version>
         <junit4.version>4.13.2</junit4.version>
         <assertj.version>3.27.7</assertj.version>
+        <!-- The jackson-bom cassandra-unit's own parent imports; see dependencyManagement below. -->
+        <jackson.version>2.22.1</jackson.version>
         <spring.version>6.2.19</spring.version>
         <logback.version>1.5.18</logback.version>
 
@@ -71,6 +73,29 @@
             --add-opens java.base/java.nio=ALL-UNNAMED
         </cassandra.argLine>
     </properties>
+
+    <!--
+      cassandra-unit 5.1.0 leaves a consumer with a mixed jackson family: jackson-databind 2.22.1
+      arrives through cassandra-unit-dataset (its parent imports a jackson-bom), while jackson-core
+      and jackson-annotations come from cassandra-all at 2.19.2 and win on declaration order. The
+      embedded daemon then dies during commit log initialisation with
+
+          NoClassDefFoundError: com/fasterxml/jackson/annotation/JsonSerializeAs
+
+      Importing the BOM here pins the whole family to one version and settles it. Do this in any
+      project that starts the embedded server.
+    -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <!--
@@ -124,6 +149,19 @@
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
             <version>${assertj.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+          CSV row datasets only. jackson-dataformat-csv is <optional> in cassandra-unit-dataset -
+          most datasets are not CSV, and optional keeps it off everyone else's classpath - and an
+          optional dependency is not transitive, so a consumer loading a .csv has to declare it.
+          YAML, JSON and XML need nothing: snakeyaml and jackson-databind arrive with the library,
+          and XML is parsed by the JDK.
+        -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-csv</artifactId>
             <scope>test</scope>
         </dependency>
 

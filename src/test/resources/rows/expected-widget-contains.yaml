@@ -1,0 +1,7 @@
+# Used with mode = CONTAINS: this row must be there and be right, and rows the file does not list
+# are allowed. The usual reason is a suite that pre-seeds reference data the fixture does not
+# describe.
+
+widget:
+  - id: 11111111-1111-1111-1111-111111111111
+    label: "shipped"

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The same rows again, in XML. Every value is a string here, which costs nothing: the column type
+  in the database decides what it becomes. XML has no null of its own, hence null="true".
+
+  Parsed with the JDK's own parser, with DOCTYPE and external entities disabled - a dataset is
+  data, and has no business reading your filesystem.
+-->
+<dataset>
+    <table name="widget">
+        <row>
+            <id>11111111-1111-1111-1111-111111111111</id>
+            <label>1</label>
+            <tags>
+                <value>alpha</value>
+                <value>beta</value>
+            </tags>
+            <created>2026-09-19T10:00:00Z</created>
+            <payload>0x0a0b0c</payload>
+            <quantity>42</quantity>
+            <props>
+                <entry key="a">1</entry>
+                <entry key="b">2</entry>
+            </props>
+        </row>
+        <row>
+            <id>00000000-0000-0000-0000-000000000009</id>
+            <label null="true"/>
+        </row>
+    </table>
+</dataset>
