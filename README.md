@@ -1,170 +1,73 @@
 # CassandraUnit examples
 
-Runnable examples for [CassandraUnit](https://github.com/jsevellec/cassandra-unit) 5.1.0 — fixtures
-loaded into Cassandra for your tests, with an embedded Apache Cassandra 5.0 if you want one.
+Testing code that talks to Cassandra usually looks like one of these:
 
-Every file under `src/test` is a working example. Clone, `mvn test`, read the one closest to what
-you need.
+- a `@BeforeEach` full of `INSERT` statements, with uuids, timestamps and blobs quoted by hand —
+  and quoted wrong the first three times;
+- Testcontainers' `withInitScript`: one CQL file, and nothing at all for asserting what the code
+  then wrote;
+- a mocked `CqlSession`, which tests the mock.
 
-## Requirements
+There is a fourth option, and this repo is 51 runnable tests of it.
 
-| | |
-|---|---|
-| JDK | **17, exactly** |
-| Maven | 3.9+ |
-| cassandra-unit | 5.1.0, from Maven Central |
+```java
+@RegisterExtension
+static CassandraUnitExtension cassandra = new CassandraUnitExtension(
+        CQLDataSetFactory.fromClassPathAll(KEYSPACE,
+                "cql/assertionSchema.cql", "rows/assertion-data.yaml"));
 
-The JDK bound is not caution. The embedded daemon runs *inside the build JVM*, Cassandra 5.0
-supports only JDK 11 and 17, and spring-test 6.2 needs 17 — and on JDK 24+ Cassandra's
-`ThreadAwareSecurityManager` calls the now-removed `System::setSecurityManager` and throws. The
-build enforces `[17,18)` so you get a sentence instead of a stack trace.
+@Test
+@ExpectedCassandraDataSet(value = "rows/expected-widget.yaml", keyspace = KEYSPACE,
+        ignoreColumns = "created")
+void shipping_a_widget_changes_its_label(CqlSession session) {
+    session.execute("update ... set label = 'shipped' where id = ...");
+}
+```
 
-Check with **`mvn -v`**, not `java -version` — a `jenv` shim overrides `JAVA_HOME` for Maven only.
-There is a `.java-version` file here for that reason.
+A YAML file sets the table up, your code runs, a YAML file says what should be true afterwards.
+Values convert through the **real column types** read from the live schema, so nothing is quoted by
+hand and nothing silently becomes a number — a `text` column holding `"1"` stays the string `"1"`.
+When the expectation does not match, the failure names the row and the column that differ and
+echoes the `SELECT` it ran, so it pastes into `cqlsh`.
 
-> The bound belongs to the **embedded server**. `cassandra-unit-dataset`, the fixture layer on its
-> own, runs on 17+ with no ceiling — see [Fixtures without the embedded server](#fixtures-without-the-embedded-server).
-
-## Running the examples
+That snippet is
+[`ExpectedCassandraDataSetAnnotationTest`](src/test/java/org/cassandraunit/test/assertion/ExpectedCassandraDataSetAnnotationTest.java),
+with the `update` shortened. Everything else about it is real, and it runs:
 
 ```bash
 git clone https://github.com/jsevellec/cassandra-unit-examples.git
-cd cassandra-unit-examples
-mvn clean test
+cd cassandra-unit-examples && mvn test    # 51 tests, ~1 min, no Docker
 ```
 
-Everything resolves from Maven Central; nothing has to be built first.
+A real Apache Cassandra 5.0 starts inside the test JVM — three startups for the whole suite, one
+shared and one per example that brings its own `cassandra.yaml`. Everything resolves from Maven
+Central; nothing has to be built first. **Use JDK 17**, which the build enforces; the reason is
+[below](#use-this-in-your-own-project).
 
-51 tests, three Cassandra startups — one shared by the whole suite, plus a fresh fork for each of
-the two examples that bring their own `cassandra.yaml` — in around a minute.
+If the node is not yours to start — Testcontainers, a shared CI node, Astra, ScyllaDB — the same
+fixtures load through a session you supply, and none of the setup below applies. See
+[`CqlDataSetExtensionTest`](src/test/java/org/cassandraunit/test/junit5/CqlDataSetExtensionTest.java).
 
-## Setting this up in your own project
+## Find the example you need
 
-Two dependencies — note there is **no explicit driver dependency**. Since 5.0.0 the driver is a
-required dependency of cassandra-unit, so it arrives transitively. Its coordinates also moved:
-`com.datastax.oss:java-driver-core` is frozen at 4.17.0 and the driver now releases as
-`org.apache.cassandra:java-driver-core`. The Java packages are unchanged
-(`com.datastax.oss.driver.*`), so declaring the old coordinates puts two jars with the same
-packages on your classpath for no benefit.
+| I want to… | file |
+|---|---|
+| load rows without hand-writing CQL | [`YamlRowDataSetTest`](src/test/java/org/cassandraunit/test/dataset/YamlRowDataSetTest.java) |
+| the same fixture in JSON, XML and CSV | [`RowDataSetFormatsTest`](src/test/java/org/cassandraunit/test/dataset/RowDataSetFormatsTest.java) |
+| assert what the database holds afterwards | [`ExpectedCassandraDataSetAnnotationTest`](src/test/java/org/cassandraunit/test/assertion/ExpectedCassandraDataSetAnnotationTest.java) |
+| …the same, without the annotation | [`ExpectedDataSetFluentTest`](src/test/java/org/cassandraunit/test/assertion/ExpectedDataSetFluentTest.java) |
+| load into a Cassandra I already run | [`CqlDataSetExtensionTest`](src/test/java/org/cassandraunit/test/junit5/CqlDataSetExtensionTest.java) |
+| reset between tests without rebuilding the schema | [`IsolationTest`](src/test/java/org/cassandraunit/test/junit5/IsolationTest.java), [`CleanDataBetweenTestsTest`](src/test/java/org/cassandraunit/test/junit5/CleanDataBetweenTestsTest.java) |
+| start from the plain embedded-server case | [`CassandraUnitExtensionTest`](src/test/java/org/cassandraunit/test/junit5/CassandraUnitExtensionTest.java) |
+| stay on JUnit 4 | [`CQLScriptLoadWithJunitRuleTest`](src/test/java/org/cassandraunit/test/cql/CQLScriptLoadWithJunitRuleTest.java), [`CQLScriptLoadWithExpectedDataSetRuleTest`](src/test/java/org/cassandraunit/test/cql/CQLScriptLoadWithExpectedDataSetRuleTest.java) |
+| use Spring Test | [`SpringExpectedCassandraDataSetTest`](src/test/java/org/cassandraunit/test/spring/cql/SpringExpectedCassandraDataSetTest.java) |
+| bring my own `cassandra.yaml` | [`StartWithCustomCassandraYamlTest`](src/test/java/org/cassandraunit/test/StartWithCustomCassandraYamlTest.java) |
 
-```xml
-<dependency>
-    <groupId>org.cassandraunit</groupId>
-    <artifactId>cassandra-unit</artifactId>
-    <version>5.1.0</version>
-    <scope>test</scope>
-</dependency>
-<!-- only if you use the Spring integration -->
-<dependency>
-    <groupId>org.cassandraunit</groupId>
-    <artifactId>cassandra-unit-spring</artifactId>
-    <version>5.1.0</version>
-    <scope>test</scope>
-</dependency>
-```
+That table is the shortlist. Every file under `src/test` is a working example — including the
+narrower ones it leaves out, such as loading a script from disk, driving the server by hand, or
+running on a random port — and all of them are in the suite, so whatever is in this repo passes.
 
-JUnit is **optional** in cassandra-unit — declare whichever platform you use (`junit-jupiter`, or
-`junit` 4 plus `junit-vintage-engine` for the `@Rule`). Spring is `provided` in
-`cassandra-unit-spring`, and provided scope is not transitive, so declare `spring-test` and
-`spring-context` yourself.
-
-**CSV datasets need one more:** `com.fasterxml.jackson.dataformat:jackson-dataformat-csv`. It is
-`optional` in cassandra-unit — most datasets are not CSV, and an optional dependency is not
-transitive — so a project loading a `.csv` declares it. YAML, JSON and XML need nothing. Without
-it, loading a `.csv` raises a `ParseException` naming the dependency.
-
-**Pin jackson with its BOM**, whether or not you use CSV:
-
-```xml
-<dependencyManagement>
-    <dependencies>
-        <dependency>
-            <groupId>com.fasterxml.jackson</groupId>
-            <artifactId>jackson-bom</artifactId>
-            <version>2.22.1</version>
-            <type>pom</type>
-            <scope>import</scope>
-        </dependency>
-    </dependencies>
-</dependencyManagement>
-```
-
-cassandra-unit 5.1.0 otherwise leaves a consumer with a mixed family: `jackson-databind` 2.22.1
-arrives through `cassandra-unit-dataset`, while `jackson-core` and `jackson-annotations` come from
-`cassandra-all` at 2.19.2 and win on declaration order. The embedded daemon then dies during commit
-log initialisation with
-
-```
-NoClassDefFoundError: com/fasterxml/jackson/annotation/JsonSerializeAs
-```
-
-surfacing as "Cassandra daemon did not start within timeout". The BOM settles it, and the CSV
-dependency then needs no version of its own.
-
-### The surefire argLine — mandatory for the embedded server
-
-Cassandra 5.0 reaches deep into the JDK, so the embedded daemon needs the same JVM flags a real
-node gets. **Every consumer that starts the embedded server must copy this block.** Without it
-surefire dies with
-
-```
-The forked VM terminated without properly saying goodbye
-```
-
-which tells you nothing about the cause. The `jamm` agent path is resolved by
-`maven-dependency-plugin`, so no version is baked into a path — jamm arrives transitively with
-`cassandra-all`. If you only use `cassandra-unit-dataset` against your own Cassandra, you need none
-of it.
-
-```xml
-<plugin>
-    <groupId>org.apache.maven.plugins</groupId>
-    <artifactId>maven-dependency-plugin</artifactId>
-    <version>3.8.1</version>
-    <executions>
-        <execution>
-            <phase>initialize</phase>
-            <goals><goal>properties</goal></goals>
-        </execution>
-    </executions>
-</plugin>
-<plugin>
-    <groupId>org.apache.maven.plugins</groupId>
-    <artifactId>maven-surefire-plugin</artifactId>
-    <version>3.6.0</version>
-    <configuration>
-        <argLine>
-            -javaagent:${com.github.jbellis:jamm:jar}
-            -Djdk.attach.allowAttachSelf=true
-            -Dio.netty.tryReflectionSetAccessible=true
-            --add-exports java.base/jdk.internal.misc=ALL-UNNAMED
-            --add-exports java.management.rmi/com.sun.jmx.remote.internal.rmi=ALL-UNNAMED
-            --add-exports java.management/com.sun.jmx.remote.security=ALL-UNNAMED
-            --add-exports java.rmi/sun.rmi.registry=ALL-UNNAMED
-            --add-exports java.rmi/sun.rmi.server=ALL-UNNAMED
-            --add-exports java.sql/java.sql=ALL-UNNAMED
-            --add-exports java.base/java.lang.ref=ALL-UNNAMED
-            --add-exports jdk.unsupported/sun.misc=ALL-UNNAMED
-            --add-opens java.base/java.lang.module=ALL-UNNAMED
-            --add-opens java.base/jdk.internal.loader=ALL-UNNAMED
-            --add-opens java.base/jdk.internal.ref=ALL-UNNAMED
-            --add-opens java.base/jdk.internal.reflect=ALL-UNNAMED
-            --add-opens java.base/jdk.internal.math=ALL-UNNAMED
-            --add-opens java.base/jdk.internal.module=ALL-UNNAMED
-            --add-opens java.base/jdk.internal.util.jar=ALL-UNNAMED
-            --add-opens jdk.management/com.sun.management.internal=ALL-UNNAMED
-            --add-opens java.base/sun.nio.ch=ALL-UNNAMED
-            --add-opens java.base/java.io=ALL-UNNAMED
-            --add-opens java.base/java.lang.reflect=ALL-UNNAMED
-            --add-opens java.base/java.lang=ALL-UNNAMED
-            --add-opens java.base/java.util=ALL-UNNAMED
-            --add-opens java.base/java.nio=ALL-UNNAMED
-        </argLine>
-    </configuration>
-</plugin>
-```
-
-## The examples
+## What the examples cover
 
 ### Row datasets — YAML, JSON, XML, CSV
 
@@ -181,8 +84,7 @@ in sync with the filename.
 | [`RowDataSetFormatsTest`](src/test/java/org/cassandraunit/test/dataset/RowDataSetFormatsTest.java) | The same rows in JSON, XML and CSV, and where CSV differs |
 
 Because the schema is already in the database when rows load, the loader reads each column's real
-type from **there** and the driver's codecs convert. The practical consequence is the one that used
-to be a bug: a `text` column holding `"1"` stays the string `"1"`.
+type from **there**, and the driver's own codecs do the converting.
 
 Two rules are worth knowing before you write a fixture:
 
@@ -380,6 +282,138 @@ all:
 unzip -p ~/.m2/repository/org/cassandraunit/cassandra-unit/5.1.0/cassandra-unit-5.1.0.jar cu-cassandra.yaml
 ```
 
+## Use this in your own project
+
+Two dependencies — note there is **no explicit driver dependency**. Since 5.0.0 the driver is a
+required dependency of cassandra-unit, so it arrives transitively. Its coordinates also moved:
+`com.datastax.oss:java-driver-core` is frozen at 4.17.0 and the driver now releases as
+`org.apache.cassandra:java-driver-core`. The Java packages are unchanged
+(`com.datastax.oss.driver.*`), so declaring the old coordinates puts two jars with the same
+packages on your classpath for no benefit.
+
+```xml
+<dependency>
+    <groupId>org.cassandraunit</groupId>
+    <artifactId>cassandra-unit</artifactId>
+    <version>5.1.0</version>
+    <scope>test</scope>
+</dependency>
+<!-- only if you use the Spring integration -->
+<dependency>
+    <groupId>org.cassandraunit</groupId>
+    <artifactId>cassandra-unit-spring</artifactId>
+    <version>5.1.0</version>
+    <scope>test</scope>
+</dependency>
+```
+
+JUnit is **optional** in cassandra-unit — declare whichever platform you use (`junit-jupiter`, or
+`junit` 4 plus `junit-vintage-engine` for the `@Rule`). Spring is `provided` in
+`cassandra-unit-spring`, and provided scope is not transitive, so declare `spring-test` and
+`spring-context` yourself. CSV datasets need
+`com.fasterxml.jackson.dataformat:jackson-dataformat-csv`, which is `optional` in cassandra-unit
+and therefore not transitive; YAML, JSON and XML need nothing.
+
+### Pin jackson — this one is not optional
+
+```xml
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>com.fasterxml.jackson</groupId>
+            <artifactId>jackson-bom</artifactId>
+            <version>2.22.1</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
+
+cassandra-unit 5.1.0 otherwise leaves a consumer with a mixed family: `jackson-databind` 2.22.1
+arrives through `cassandra-unit-dataset`, while `jackson-core` and `jackson-annotations` come from
+`cassandra-all` at 2.19.2 and win on declaration order. The embedded daemon then dies during commit
+log initialisation with `NoClassDefFoundError: com/fasterxml/jackson/annotation/JsonSerializeAs`,
+which surfaces as **"Cassandra daemon did not start within timeout"** — a message pointing nowhere
+near the cause. The BOM settles it, and the CSV dependency then needs no version of its own.
+
+<details>
+<summary><b>The surefire argLine — mandatory for the embedded server</b>, or the fork dies with "The forked VM terminated without properly saying goodbye"</summary>
+
+Cassandra 5.0 reaches deep into the JDK, so the embedded daemon needs the same JVM flags a real
+node gets. Without them surefire dies with `The forked VM terminated without properly saying
+goodbye`, which tells you nothing about the cause. The `jamm` agent path is resolved by
+`maven-dependency-plugin`, so no version is baked into a path — jamm arrives transitively with
+`cassandra-all`. If you only use `cassandra-unit-dataset` against your own Cassandra, you need none
+of it.
+
+```xml
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-dependency-plugin</artifactId>
+    <version>3.8.1</version>
+    <executions>
+        <execution>
+            <phase>initialize</phase>
+            <goals><goal>properties</goal></goals>
+        </execution>
+    </executions>
+</plugin>
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-surefire-plugin</artifactId>
+    <version>3.6.0</version>
+    <configuration>
+        <argLine>
+            -javaagent:${com.github.jbellis:jamm:jar}
+            -Djdk.attach.allowAttachSelf=true
+            -Dio.netty.tryReflectionSetAccessible=true
+            --add-exports java.base/jdk.internal.misc=ALL-UNNAMED
+            --add-exports java.management.rmi/com.sun.jmx.remote.internal.rmi=ALL-UNNAMED
+            --add-exports java.management/com.sun.jmx.remote.security=ALL-UNNAMED
+            --add-exports java.rmi/sun.rmi.registry=ALL-UNNAMED
+            --add-exports java.rmi/sun.rmi.server=ALL-UNNAMED
+            --add-exports java.sql/java.sql=ALL-UNNAMED
+            --add-exports java.base/java.lang.ref=ALL-UNNAMED
+            --add-exports jdk.unsupported/sun.misc=ALL-UNNAMED
+            --add-opens java.base/java.lang.module=ALL-UNNAMED
+            --add-opens java.base/jdk.internal.loader=ALL-UNNAMED
+            --add-opens java.base/jdk.internal.ref=ALL-UNNAMED
+            --add-opens java.base/jdk.internal.reflect=ALL-UNNAMED
+            --add-opens java.base/jdk.internal.math=ALL-UNNAMED
+            --add-opens java.base/jdk.internal.module=ALL-UNNAMED
+            --add-opens java.base/jdk.internal.util.jar=ALL-UNNAMED
+            --add-opens jdk.management/com.sun.management.internal=ALL-UNNAMED
+            --add-opens java.base/sun.nio.ch=ALL-UNNAMED
+            --add-opens java.base/java.io=ALL-UNNAMED
+            --add-opens java.base/java.lang.reflect=ALL-UNNAMED
+            --add-opens java.base/java.lang=ALL-UNNAMED
+            --add-opens java.base/java.util=ALL-UNNAMED
+            --add-opens java.base/java.nio=ALL-UNNAMED
+        </argLine>
+    </configuration>
+</plugin>
+```
+
+</details>
+
+<details>
+<summary><b>Why JDK 17, exactly</b></summary>
+
+The embedded daemon runs *inside the build JVM*, Cassandra 5.0 supports only JDK 11 and 17, and
+spring-test 6.2 needs 17 — and on JDK 24+ Cassandra's `ThreadAwareSecurityManager` calls the
+now-removed `System::setSecurityManager` and throws. This build enforces `[17,18)` so you get a
+sentence instead of a stack trace.
+
+Check with `mvn -v`, not `java -version` — a `jenv` shim overrides `JAVA_HOME` for Maven only.
+There is a `.java-version` file here for that reason.
+
+The bound belongs to the **embedded server**. `cassandra-unit-dataset`, the fixture layer on its
+own, runs on 17+ with no ceiling — see
+[Fixtures without the embedded server](#fixtures-without-the-embedded-server).
+
+</details>
+
 ## Version compatibility
 
 From 5.0.0 the version number leads with the **embedded Apache Cassandra major**; the minor and
@@ -421,8 +455,10 @@ patch are cassandra-unit's own. The driver version never appears in it.
   asserting on it.
 - Cassandra logs a lot. [`logback-test.xml`](src/test/resources/logback-test.xml) holds it at
   `WARN`; raise `org.apache.cassandra` to `DEBUG` when a startup goes wrong.
-- "Cassandra daemon did not start within timeout" usually means something else is already on 9042 —
-  another build of your own, most often.
+- "Cassandra daemon did not start within timeout" is a symptom, not a cause. Two things produce it:
+  something else already listening on 9042 — another build of your own, most often — or the jackson
+  mismatch described under [Pin jackson](#pin-jackson--this-one-is-not-optional). The daemon's real
+  error is in the log above the timeout.
 
 ## License
 
