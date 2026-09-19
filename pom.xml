@@ -1,58 +1,263 @@
-<?xml version="1.0"?>
-<project
-        xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
-        xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <groupId>org.cassandraunit</groupId>
     <artifactId>cassandra-unit-examples</artifactId>
-    <version>3.7.1.1-SNAPSHOT</version>
+    <version>5.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
     <name>cassandra-unit-examples</name>
-    <url>http://maven.apache.org</url>
-    <repositories>
-        <repository>
-            <id>sonatype-oss-snapshot</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>daily</updatePolicy>
-            </snapshots>
-        </repository>
-    </repositories>
-    <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <scope>test</scope>
-        </dependency>
+    <description>Runnable examples showing how to use cassandra-unit</description>
+    <url>https://github.com/jsevellec/cassandra-unit-examples</url>
 
-
-        <dependency>
-            <groupId>com.datastax.oss</groupId>
-            <artifactId>java-driver-core</artifactId>
-            <version>4.2.2</version>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>org.cassandraunit</groupId>
-            <artifactId>cassandra-unit-spring</artifactId>
-            <version>3.7.1.1-SNAPSHOT</version>
-            <scope>test</scope>
-        </dependency>
-
-
-<!--        <dependency>-->
-<!--            <groupId>org.springframework</groupId>-->
-<!--            <artifactId>spring-test</artifactId>-->
-<!--            <version>4.1.6.RELEASE</version>-->
-<!--            <scope>test</scope>-->
-<!--        </dependency>-->
-    </dependencies>
+    <!--
+      This project is deliberately standalone - it has no <parent>. That is the point: it
+      exercises cassandra-unit exactly the way a real consumer does, so anything the library
+      needs from the build has to be spelled out here rather than inherited.
+    -->
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.release>17</maven.compiler.release>
+
+        <cassandra-unit.version>5.0.0-SNAPSHOT</cassandra-unit.version>
+        <junit.jupiter.version>5.14.4</junit.jupiter.version>
+        <junit4.version>4.13.2</junit4.version>
+        <assertj.version>3.27.7</assertj.version>
+        <spring.version>6.2.19</spring.version>
+        <logback.version>1.5.18</logback.version>
+
+        <!--
+          Cassandra 5.0 reaches deep into the JDK, so the embedded daemon needs the same JVM
+          flags a real node gets. Copied verbatim from cassandra-unit's own parent pom (which
+          in turn copies conf/jvm17-server.options from cassandra-5.0.8), plus the jamm
+          memory-meter agent.
+
+          EVERY consumer of cassandra-unit must do this. Without it, surefire dies with
+          "The forked VM terminated without properly saying goodbye", which says nothing
+          useful about the cause.
+
+          The jamm path is resolved by maven-dependency-plugin's `properties` goal below, so
+          no version is hardcoded into a path - jamm arrives transitively via cassandra-all
+          and whatever version Cassandra was built against is the one that gets used.
+        -->
+        <cassandra.argLine>
+            -javaagent:${com.github.jbellis:jamm:jar}
+            -Djdk.attach.allowAttachSelf=true
+            -Dio.netty.tryReflectionSetAccessible=true
+            --add-exports java.base/jdk.internal.misc=ALL-UNNAMED
+            --add-exports java.management.rmi/com.sun.jmx.remote.internal.rmi=ALL-UNNAMED
+            --add-exports java.management/com.sun.jmx.remote.security=ALL-UNNAMED
+            --add-exports java.rmi/sun.rmi.registry=ALL-UNNAMED
+            --add-exports java.rmi/sun.rmi.server=ALL-UNNAMED
+            --add-exports java.sql/java.sql=ALL-UNNAMED
+            --add-exports java.base/java.lang.ref=ALL-UNNAMED
+            --add-exports jdk.unsupported/sun.misc=ALL-UNNAMED
+            --add-opens java.base/java.lang.module=ALL-UNNAMED
+            --add-opens java.base/jdk.internal.loader=ALL-UNNAMED
+            --add-opens java.base/jdk.internal.ref=ALL-UNNAMED
+            --add-opens java.base/jdk.internal.reflect=ALL-UNNAMED
+            --add-opens java.base/jdk.internal.math=ALL-UNNAMED
+            --add-opens java.base/jdk.internal.module=ALL-UNNAMED
+            --add-opens java.base/jdk.internal.util.jar=ALL-UNNAMED
+            --add-opens jdk.management/com.sun.management.internal=ALL-UNNAMED
+            --add-opens java.base/sun.nio.ch=ALL-UNNAMED
+            --add-opens java.base/java.io=ALL-UNNAMED
+            --add-opens java.base/java.lang.reflect=ALL-UNNAMED
+            --add-opens java.base/java.lang=ALL-UNNAMED
+            --add-opens java.base/java.util=ALL-UNNAMED
+            --add-opens java.base/java.nio=ALL-UNNAMED
+        </cassandra.argLine>
     </properties>
+
+    <dependencies>
+        <!--
+          The library under demonstration. Note there is NO explicit driver dependency: since
+          5.0.0 the driver is a required (non-optional) dependency of cassandra-unit, so it
+          arrives transitively. Its coordinates also moved - the DataStax ones
+          (com.datastax.oss:java-driver-core) are frozen at 4.17.0 and the driver now releases
+          as org.apache.cassandra:java-driver-core. The Java packages are unchanged
+          (com.datastax.oss.driver.*), so declaring the old coordinates here would put two
+          jars with the same packages on the classpath for no benefit.
+        -->
+        <dependency>
+            <groupId>org.cassandraunit</groupId>
+            <artifactId>cassandra-unit</artifactId>
+            <version>${cassandra-unit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.cassandraunit</groupId>
+            <artifactId>cassandra-unit-spring</artifactId>
+            <version>${cassandra-unit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+          JUnit 5 runs the modern examples. JUnit 4 is <optional> in cassandra-unit 5.0.0 (it
+          used to be compile-scoped and leak onto every consumer), so the @Rule examples need
+          it declared here, plus the vintage engine to run them on the JUnit Platform
+          alongside the Jupiter ones.
+        -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit4.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <version>${assertj.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+          Spring is `provided` in cassandra-unit-spring, and provided scope is not transitive:
+          the consuming application owns its Spring version. So the Spring examples only
+          compile if we declare it ourselves.
+        -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <version>${spring.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <version>${spring.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- An SLF4J backend, so the ~3s Cassandra boot is observable when it goes wrong. -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>${logback.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.8.1</version>
+                <executions>
+                    <execution>
+                        <!-- Resolves ${com.github.jbellis:jamm:jar} for the surefire argLine -->
+                        <id>resolve-agent-paths</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>enforce-jdk</id>
+                        <goals><goal>enforce</goal></goals>
+                        <configuration>
+                            <rules>
+                                <!--
+                                  The embedded daemon runs inside the build JVM, so the build
+                                  JDK is the server JDK. Cassandra 5.0 supports 11 and 17 only,
+                                  and spring-test 6.2 needs 17, so 17 it is. The upper bound is
+                                  real: Cassandra's ThreadAwareSecurityManager calls
+                                  System::setSecurityManager, which throws on JDK 24+.
+
+                                  Check `mvn -v`, not `java -version` - a jenv shim overrides
+                                  JAVA_HOME for mvn. There is a .java-version file next to this
+                                  pom for exactly that reason.
+                                -->
+                                <requireJavaVersion>
+                                    <version>[17,18)</version>
+                                    <message>cassandra-unit-examples must be built and run on JDK 17. The embedded Cassandra daemon runs in the build JVM, and Cassandra 5.0 supports only JDK 11 and 17. Check `mvn -v` - a jenv shim overrides JAVA_HOME for mvn.</message>
+                                </requireJavaVersion>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.6.0</version>
+                <configuration>
+                    <argLine>-Dfile.encoding=${project.build.sourceEncoding} ${cassandra.argLine}</argLine>
+                </configuration>
+                <!--
+                  One Cassandra per JVM is a hard constraint: DatabaseDescriptor, Schema and
+                  StorageService hold static state that cannot be reset in-process, so a JVM is
+                  pinned to the first configuration it starts. cassandra-unit-spring's
+                  AbstractCassandraUnitTestExecutionListener has a JVM-global `initialized`
+                  flag with the same effect.
+
+                  So the suite is split: everything using the default cu-cassandra.yaml shares
+                  one JVM and one Cassandra, and the two examples that bring their own
+                  configuration each get a fresh fork.
+                -->
+                <executions>
+                    <execution>
+                        <id>default-test</id>
+                        <configuration>
+                            <reuseForks>true</reuseForks>
+                            <forkCount>1</forkCount>
+                            <excludes>
+                                <exclude>**/StartWithCustomCassandraYamlTest.java</exclude>
+                                <exclude>**/StartWithRandomPortTest.java</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>isolated-config-tests</id>
+                        <goals><goal>test</goal></goals>
+                        <configuration>
+                            <reuseForks>false</reuseForks>
+                            <includes>
+                                <include>**/StartWithCustomCassandraYamlTest.java</include>
+                                <include>**/StartWithRandomPortTest.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

@@ -1,0 +1,49 @@
+package org.cassandraunit.test.junit5;
+
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.Row;
+import org.cassandraunit.CQLDataLoader;
+import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
+import org.cassandraunit.utils.EmbeddedCassandraServerHelper;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * No extension: drive {@link EmbeddedCassandraServerHelper} and {@link CQLDataLoader} yourself.
+ *
+ * <p>This is what you want when something other than JUnit owns the lifecycle, or when you
+ * need to do work between starting the server and loading data.
+ *
+ * <p>There is exactly one embedded Cassandra and one {@link CqlSession} per JVM, and
+ * {@code startEmbeddedCassandra()} is a no-op once one is running - so calling it from several
+ * test classes in a shared fork is fine.
+ */
+class EmbeddedCassandraManualStartTest {
+
+    private static CqlSession session;
+
+    @BeforeAll
+    static void startCassandraAndLoadData() throws Exception {
+        EmbeddedCassandraServerHelper.startEmbeddedCassandra();
+
+        session = EmbeddedCassandraServerHelper.getSession();
+        new CQLDataLoader(session).load(new ClassPathCQLDataSet("simple.cql", "keyspaceNameToCreate"));
+    }
+
+    @Test
+    void the_server_reports_where_it_is_listening() {
+        assertThat(EmbeddedCassandraServerHelper.getHost()).isNotBlank();
+        assertThat(EmbeddedCassandraServerHelper.getNativeTransportPort()).isPositive();
+        assertThat(EmbeddedCassandraServerHelper.getClusterName()).isEqualTo("Test Cluster");
+    }
+
+    @Test
+    void the_dataset_was_loaded() {
+        Row row = session.execute("select value from mytable where id = 'myKey01'").one();
+
+        assertThat(row).isNotNull();
+        assertThat(row.getString("value")).isEqualTo("myValue01");
+    }
+}

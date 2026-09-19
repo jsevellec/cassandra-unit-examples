@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Embedded Cassandra logs a great deal at INFO. Keep it at WARN so the test output is
+  readable, but leave cassandra-unit itself at INFO so you can see the server start and the
+  datasets load. Raise org.apache.cassandra to INFO or DEBUG when a startup goes wrong.
+-->
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="org.apache.cassandra" level="WARN"/>
+    <logger name="com.datastax.oss.driver" level="WARN"/>
+    <logger name="org.cassandraunit" level="INFO"/>
+
+    <root level="WARN">
+        <appender-ref ref="STDOUT"/>
+    </root>
+</configuration>
