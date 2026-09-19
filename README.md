@@ -8,7 +8,7 @@ Testing code that talks to Cassandra usually looks like one of these:
   then wrote;
 - a mocked `CqlSession`, which tests the mock.
 
-There is a fourth option, and this repo is 51 runnable tests of it.
+There is a fourth option, and this repo is 63 runnable tests of it.
 
 ```java
 @RegisterExtension
@@ -36,7 +36,7 @@ with the `update` shortened. Everything else about it is real, and it runs:
 
 ```bash
 git clone https://github.com/jsevellec/cassandra-unit-examples.git
-cd cassandra-unit-examples && mvn test    # 51 tests, ~1 min, no Docker
+cd cassandra-unit-examples && mvn test    # 63 tests, ~1 min, no Docker
 ```
 
 A real Apache Cassandra 5.0 starts inside the test JVM — three startups for the whole suite, one
@@ -54,8 +54,10 @@ fixtures load through a session you supply, and none of the setup below applies.
 |---|---|
 | load rows without hand-writing CQL | [`YamlRowDataSetTest`](src/test/java/org/cassandraunit/test/dataset/YamlRowDataSetTest.java) |
 | the same fixture in JSON, XML and CSV | [`RowDataSetFormatsTest`](src/test/java/org/cassandraunit/test/dataset/RowDataSetFormatsTest.java) |
+| write the fixture in Java, with no file at all | [`BuiltDataSetTest`](src/test/java/org/cassandraunit/test/dataset/BuiltDataSetTest.java) |
 | assert what the database holds afterwards | [`ExpectedCassandraDataSetAnnotationTest`](src/test/java/org/cassandraunit/test/assertion/ExpectedCassandraDataSetAnnotationTest.java) |
 | …the same, without the annotation | [`ExpectedDataSetFluentTest`](src/test/java/org/cassandraunit/test/assertion/ExpectedDataSetFluentTest.java) |
+| assert one value or one row count, fluently | [`CqlAssertionsTest`](src/test/java/org/cassandraunit/test/assertion/CqlAssertionsTest.java) |
 | load into a Cassandra I already run | [`CqlDataSetExtensionTest`](src/test/java/org/cassandraunit/test/junit5/CqlDataSetExtensionTest.java) |
 | reset between tests without rebuilding the schema | [`IsolationTest`](src/test/java/org/cassandraunit/test/junit5/IsolationTest.java), [`CleanDataBetweenTestsTest`](src/test/java/org/cassandraunit/test/junit5/CleanDataBetweenTestsTest.java) |
 | start from the plain embedded-server case | [`CassandraUnitExtensionTest`](src/test/java/org/cassandraunit/test/junit5/CassandraUnitExtensionTest.java) |
@@ -109,6 +111,38 @@ is where people drop the keyspace they have just populated.
 Quote anything whose YAML meaning differs from its CQL meaning — `"0x0a0b"` for a `blob`, `"1"` for
 a number-shaped value in a `text` column. Counters, `USING TTL`, `USING TIMESTAMP` and `DELETE` are
 not expressible as rows; use a CQL script for those.
+
+### Datasets written in Java
+
+[`BuiltDataSetTest`](src/test/java/org/cassandraunit/test/dataset/BuiltDataSetTest.java)
+
+New in 5.2.0, and the sixth format: the same rows, with no file.
+
+```java
+RowsCQLDataSet fixtures = CQLDataSetFactory.builder("mykeyspace")
+        .named("the widget fixture, built in code")
+        .table("widget").columns("id", "label", "quantity", "created")
+            .row(id, "ordered", 1, Instant.parse("2026-09-19T10:00:00Z"))
+        .build();
+```
+
+For three rows a file is a file's worth of ceremony, and it puts the fixture somewhere other than
+the test that needs it. This is not a second loader: `build()` returns the same `RowsCQLDataSet` a
+`.yaml` parses to, so the column types still come from the live schema and the rule, the extensions
+and `CQLDataLoader` take it as they take any dataset.
+
+What it can do that a file cannot is take the object you already have — a `UUID`, an `Instant`, a
+`Set<String>` — rather than its string form. The rest of the rules are unchanged: a positional
+`row(...)` fills the columns declared for the table, `row(Map)` is for a row of a different shape,
+an explicit `null` tombstones and an absent column stays unset. Keyspace creation and deletion
+default to **off**, because a builder describes rows and never schema.
+
+Being a `RowsCQLDataSet`, the same object can also state the expectation —
+`ExpectedDataSetFactory.of(fixtures, "mykeyspace").verify(session)` — which is why the example
+declares it as that concrete type rather than as `CQLDataSet`.
+
+A malformed dataset raises `ParseException` **at the call that malformed it**, not at `build()`, so
+the stack trace points at the row that is wrong.
 
 ### Isolation — what a load clears
 
@@ -175,6 +209,36 @@ Wiring, by integration: `CassandraUnitExtension` and the Spring listeners pick t
 with nothing added; against a session you supply, register `ExpectedCassandraDataSetExtension`; on
 JUnit 4, chain `ExpectedCassandraDataSetRule`.
 
+### Fluent assertions, for one value
+
+[`CqlAssertionsTest`](src/test/java/org/cassandraunit/test/assertion/CqlAssertionsTest.java)
+
+Also new in 5.2.0, and the companion to the annotation rather than a replacement for it. A dataset
+file is the right tool for *these are all the rows this table should hold*; this is the right tool
+for one value or one row count, where a file would be out of proportion.
+
+```java
+import static org.cassandraunit.assertion.CqlAssertions.assertThat;
+
+assertThat(session).keyspace("mykeyspace")
+        .table("widget")
+            .hasRowCount(3)
+            .row("id", widgetId)
+                .hasValue("label", "ordered")
+                .hasNull("created");
+```
+
+Both halves agree on what equal means — they share one value comparison — so an empty `set` reading
+back as null, or `1.50` against `1.5`, behaves identically whichever you use, and expected values
+take the same forms a row dataset takes (`hasValue("quantity", 1)` against a `bigint`, a `uuid` as
+its string form). A row is addressed by its **whole** primary key, so a table with a clustering
+column needs the map form.
+
+`assertThat(row)` and `assertThat(resultSet)` cover what you fetched yourself, and
+`keyspace(...).matches(expectedDataSet)` hands a whole file-shaped expectation back to the chain.
+Needs `assertj-core`, which is `optional` in cassandra-unit; every assert type extends AssertJ's
+`AbstractAssert`, so `as()`, `satisfies()` and `SoftAssertions` work as usual.
+
 ### Fixtures without the embedded server
 
 [`CqlDataSetExtensionTest`](src/test/java/org/cassandraunit/test/junit5/CqlDataSetExtensionTest.java)
@@ -205,7 +269,7 @@ The fixture layer is its own artifact, with no `cassandra-all`, no jamm agent an
 <dependency>
     <groupId>org.cassandraunit</groupId>
     <artifactId>cassandra-unit-dataset</artifactId>
-    <version>5.1.0</version>
+    <version>5.2.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -279,7 +343,7 @@ so any pre-4.x file (`start_rpc`, `rpc_port`, `thrift_*`, the `*_in_ms` spelling
 all:
 
 ```bash
-unzip -p ~/.m2/repository/org/cassandraunit/cassandra-unit/5.1.0/cassandra-unit-5.1.0.jar cu-cassandra.yaml
+unzip -p ~/.m2/repository/org/cassandraunit/cassandra-unit/5.2.0/cassandra-unit-5.2.0.jar cu-cassandra.yaml
 ```
 
 ## Use this in your own project
@@ -295,14 +359,14 @@ packages on your classpath for no benefit.
 <dependency>
     <groupId>org.cassandraunit</groupId>
     <artifactId>cassandra-unit</artifactId>
-    <version>5.1.0</version>
+    <version>5.2.0</version>
     <scope>test</scope>
 </dependency>
 <!-- only if you use the Spring integration -->
 <dependency>
     <groupId>org.cassandraunit</groupId>
     <artifactId>cassandra-unit-spring</artifactId>
-    <version>5.1.0</version>
+    <version>5.2.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -312,7 +376,10 @@ JUnit is **optional** in cassandra-unit — declare whichever platform you use (
 `cassandra-unit-spring`, and provided scope is not transitive, so declare `spring-test` and
 `spring-context` yourself. CSV datasets need
 `com.fasterxml.jackson.dataformat:jackson-dataformat-csv`, which is `optional` in cassandra-unit
-and therefore not transitive; YAML, JSON and XML need nothing.
+and therefore not transitive; YAML, JSON and XML need nothing. The fluent `CqlAssertions` are
+`optional` in the same way and need `assertj-core` — without it, touching that class raises
+`NoClassDefFoundError: org/assertj/core/api/AbstractAssert`. Nothing else in the library requires
+either.
 
 ### Pin jackson — this one is not optional
 
@@ -330,7 +397,7 @@ and therefore not transitive; YAML, JSON and XML need nothing.
 </dependencyManagement>
 ```
 
-cassandra-unit 5.1.0 otherwise leaves a consumer with a mixed family: `jackson-databind` 2.22.1
+cassandra-unit 5.2.0 otherwise leaves a consumer with a mixed family: `jackson-databind` 2.22.1
 arrives through `cassandra-unit-dataset`, while `jackson-core` and `jackson-annotations` come from
 `cassandra-all` at 2.19.2 and win on declaration order. The embedded daemon then dies during commit
 log initialisation with `NoClassDefFoundError: com/fasterxml/jackson/annotation/JsonSerializeAs`,
@@ -443,7 +510,8 @@ patch are cassandra-unit's own. The driver version never appears in it.
 | JUnit 4 and Hamcrest on your classpath whether you wanted them or not | Both optional — declare what you use |
 | JUnit 5 | `CassandraUnitExtension` (5.0.0), and `CqlDataSetExtension` for a session you own (5.1.0) |
 | `readTimeoutMillis` was stored and ignored | Now actually applied, so queries can time out. Also `setRequestTimeout(Duration)` |
-| Nothing asserted the end state | `@ExpectedCassandraDataSet` (5.1.0) |
+| Nothing asserted the end state | `@ExpectedCassandraDataSet` (5.1.0), and fluent `CqlAssertions` (5.2.0) |
+| A fixture had to be a file | It can be a Java builder instead — `CQLDataSetFactory.builder(...)` (5.2.0) |
 
 ## Notes
 

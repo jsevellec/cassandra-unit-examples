@@ -22,7 +22,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>17</maven.compiler.release>
 
-        <cassandra-unit.version>5.1.0</cassandra-unit.version>
+        <cassandra-unit.version>5.2.0</cassandra-unit.version>
         <junit.jupiter.version>5.14.4</junit.jupiter.version>
         <junit4.version>4.13.2</junit4.version>
         <assertj.version>3.27.7</assertj.version>
