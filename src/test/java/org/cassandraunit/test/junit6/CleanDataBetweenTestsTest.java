@@ -1,4 +1,4 @@
-package org.cassandraunit.test.junit5;
+package org.cassandraunit.test.junit6;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import org.cassandraunit.CQLDataLoader;

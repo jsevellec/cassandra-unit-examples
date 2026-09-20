@@ -8,7 +8,8 @@ Testing code that talks to Cassandra usually looks like one of these:
   then wrote;
 - a mocked `CqlSession`, which tests the mock.
 
-There is a fourth option, and this repo is 63 runnable tests of it.
+There is a fourth option, and this repo is 95 runnable tests of it — 88 of them need nothing
+but a JDK, the other 7 a Docker daemon, and they skip without one.
 
 ```java
 @RegisterExtension
@@ -46,7 +47,8 @@ Central; nothing has to be built first. **Use JDK 17**, which the build enforces
 
 If the node is not yours to start — Testcontainers, a shared CI node, Astra, ScyllaDB — the same
 fixtures load through a session you supply, and none of the setup below applies. See
-[`CqlDataSetExtensionTest`](src/test/java/org/cassandraunit/test/junit5/CqlDataSetExtensionTest.java).
+[`CqlDataSetExtensionTest`](src/test/java/org/cassandraunit/test/junit6/CqlDataSetExtensionTest.java) and
+[`TestcontainersFixtureTest`](src/test/java/org/cassandraunit/test/junit6/TestcontainersFixtureTest.java).
 
 ## Find the example you need
 
@@ -58,10 +60,11 @@ fixtures load through a session you supply, and none of the setup below applies.
 | assert what the database holds afterwards | [`ExpectedCassandraDataSetAnnotationTest`](src/test/java/org/cassandraunit/test/assertion/ExpectedCassandraDataSetAnnotationTest.java) |
 | …the same, without the annotation | [`ExpectedDataSetFluentTest`](src/test/java/org/cassandraunit/test/assertion/ExpectedDataSetFluentTest.java) |
 | assert one value or one row count, fluently | [`CqlAssertionsTest`](src/test/java/org/cassandraunit/test/assertion/CqlAssertionsTest.java) |
-| load into a Cassandra I already run | [`CqlDataSetExtensionTest`](src/test/java/org/cassandraunit/test/junit5/CqlDataSetExtensionTest.java) |
-| reset between tests without rebuilding the schema | [`IsolationTest`](src/test/java/org/cassandraunit/test/junit5/IsolationTest.java), [`CleanDataBetweenTestsTest`](src/test/java/org/cassandraunit/test/junit5/CleanDataBetweenTestsTest.java) |
-| start from the plain embedded-server case | [`CassandraUnitExtensionTest`](src/test/java/org/cassandraunit/test/junit5/CassandraUnitExtensionTest.java) |
-| stay on JUnit 4 | [`CQLScriptLoadWithJunitRuleTest`](src/test/java/org/cassandraunit/test/cql/CQLScriptLoadWithJunitRuleTest.java), [`CQLScriptLoadWithExpectedDataSetRuleTest`](src/test/java/org/cassandraunit/test/cql/CQLScriptLoadWithExpectedDataSetRuleTest.java) |
+| load into a Cassandra I already run | [`CqlDataSetExtensionTest`](src/test/java/org/cassandraunit/test/junit6/CqlDataSetExtensionTest.java) |
+| load into a Cassandra in Testcontainers | [`TestcontainersFixtureTest`](src/test/java/org/cassandraunit/test/junit6/TestcontainersFixtureTest.java) |
+| reset between tests without rebuilding the schema | [`IsolationTest`](src/test/java/org/cassandraunit/test/junit6/IsolationTest.java), [`CleanDataBetweenTestsTest`](src/test/java/org/cassandraunit/test/junit6/CleanDataBetweenTestsTest.java) |
+| start from the plain embedded-server case | [`CassandraUnitExtensionTest`](src/test/java/org/cassandraunit/test/junit6/CassandraUnitExtensionTest.java) |
+| stay on JUnit 4 | everything in [`src/test/java/org/cassandraunit/test/cql/`](src/test/java/org/cassandraunit/test/cql/) — row datasets, assertions, isolation and Testcontainers included |
 | use Spring Test | [`SpringExpectedCassandraDataSetTest`](src/test/java/org/cassandraunit/test/spring/cql/SpringExpectedCassandraDataSetTest.java) |
 | use Spring Boot, with nothing wired up | [`SpringBootEmbeddedCassandraTest`](src/test/java/org/cassandraunit/test/spring/boot/SpringBootEmbeddedCassandraTest.java) |
 | load fixtures through my Spring `CqlSession` bean | [`SpringSessionsFixtureTest`](src/test/java/org/cassandraunit/test/spring/session/SpringSessionsFixtureTest.java) |
@@ -148,7 +151,7 @@ the stack trace points at the row that is wrong.
 
 ### Isolation — what a load clears
 
-[`IsolationTest`](src/test/java/org/cassandraunit/test/junit5/IsolationTest.java)
+[`IsolationTest`](src/test/java/org/cassandraunit/test/junit6/IsolationTest.java)
 
 | `CQLDataLoader.Isolation` | |
 |---|---|
@@ -171,7 +174,7 @@ new CassandraUnitExtension(dataSet).withIsolation(Isolation.TRUNCATE);
 `CqlOperations.truncateKeyspace(session, keyspace, excludedTables...)` is the same primitive
 without a load, and `CqlOperations.quote(identifier)` quotes an identifier that needs it — both
 public API as of 5.1.0. See
-[`CleanDataBetweenTestsTest`](src/test/java/org/cassandraunit/test/junit5/CleanDataBetweenTestsTest.java).
+[`CleanDataBetweenTestsTest`](src/test/java/org/cassandraunit/test/junit6/CleanDataBetweenTestsTest.java).
 
 ### Assertions — what the database holds afterwards
 
@@ -243,7 +246,7 @@ Needs `assertj-core`, which is `optional` in cassandra-unit; every assert type e
 
 ### Fixtures without the embedded server
 
-[`CqlDataSetExtensionTest`](src/test/java/org/cassandraunit/test/junit5/CqlDataSetExtensionTest.java)
+[`CqlDataSetExtensionTest`](src/test/java/org/cassandraunit/test/junit6/CqlDataSetExtensionTest.java)
 
 `CqlDataSetExtension` starts nothing. You give it a session — a Testcontainers container, a node CI
 already runs, a managed service — and it loads the same datasets through that:
@@ -277,25 +280,53 @@ The fixture layer is its own artifact, with no `cassandra-all`, no jamm agent an
 ```
 
 None of the surefire `argLine` above is needed for it — that block is the price of the embedded
-server, not of the fixtures. The example here supplies the embedded server's session so that
-`mvn test` needs no Docker; against a container only the supplier changes.
+server, not of the fixtures.
 
-### JUnit 5 / 6 with the embedded server
+Two examples, one shape:
 
-`src/test/java/org/cassandraunit/test/junit5/`
+| Example | Session comes from |
+|---|---|
+| [`CqlDataSetExtensionTest`](src/test/java/org/cassandraunit/test/junit6/CqlDataSetExtensionTest.java) | the embedded server, standing in for "a node you own" — no Docker |
+| [`TestcontainersFixtureTest`](src/test/java/org/cassandraunit/test/junit6/TestcontainersFixtureTest.java) | a real `cassandra:5.0` container |
+
+The dataset code in the two files is identical; only the supplier differs. The container one needs
+two more test-scope dependencies — note the 2.x rename, `testcontainers-cassandra`, not `cassandra`:
+
+```xml
+<dependency>
+    <groupId>org.testcontainers</groupId>
+    <artifactId>testcontainers-cassandra</artifactId>
+    <version>2.0.5</version>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>org.testcontainers</groupId>
+    <artifactId>testcontainers-junit-jupiter</artifactId>
+    <version>2.0.5</version>
+    <scope>test</scope>
+</dependency>
+```
+
+`@Testcontainers(disabledWithoutDocker = true)` makes it skip where there is no Docker; the
+attribute defaults to `false`, which errors instead, so set it. Cassandra runs on the JDK the image
+ships, so the JDK 17 ceiling below does not apply to that path.
+
+### JUnit 6 with the embedded server
+
+`src/test/java/org/cassandraunit/test/junit6/`
 
 | Example | Shows |
 |---|---|
-| [`CassandraUnitExtensionTest`](src/test/java/org/cassandraunit/test/junit5/CassandraUnitExtensionTest.java) | The normal case: `@RegisterExtension` + a `CqlSession` injected straight into the test method |
-| [`CqlDataSetWithoutKeyspaceCreationTest`](src/test/java/org/cassandraunit/test/junit5/CqlDataSetWithoutKeyspaceCreationTest.java) | When the script owns its `CREATE KEYSPACE` |
-| [`EmbeddedCassandraManualStartTest`](src/test/java/org/cassandraunit/test/junit5/EmbeddedCassandraManualStartTest.java) | No extension: drive `EmbeddedCassandraServerHelper` and `CQLDataLoader` yourself |
-| [`MultipleDataSetsTest`](src/test/java/org/cassandraunit/test/junit5/MultipleDataSetsTest.java) | Schema and data in separate scripts, and what the keyspace flags mean |
-| [`CleanDataBetweenTestsTest`](src/test/java/org/cassandraunit/test/junit5/CleanDataBetweenTestsTest.java) | Resetting state without restarting Cassandra: `CqlOperations`, `truncateKeyspace`, `cleanDataEmbeddedCassandra` |
-| [`FileCqlDataSetTest`](src/test/java/org/cassandraunit/test/junit5/FileCqlDataSetTest.java) | Loading a script from disk rather than the classpath |
+| [`CassandraUnitExtensionTest`](src/test/java/org/cassandraunit/test/junit6/CassandraUnitExtensionTest.java) | The normal case: `@RegisterExtension` + a `CqlSession` injected straight into the test method |
+| [`CqlDataSetWithoutKeyspaceCreationTest`](src/test/java/org/cassandraunit/test/junit6/CqlDataSetWithoutKeyspaceCreationTest.java) | When the script owns its `CREATE KEYSPACE` |
+| [`EmbeddedCassandraManualStartTest`](src/test/java/org/cassandraunit/test/junit6/EmbeddedCassandraManualStartTest.java) | No extension: drive `EmbeddedCassandraServerHelper` and `CQLDataLoader` yourself |
+| [`MultipleDataSetsTest`](src/test/java/org/cassandraunit/test/junit6/MultipleDataSetsTest.java) | Schema and data in separate scripts, and what the keyspace flags mean |
+| [`CleanDataBetweenTestsTest`](src/test/java/org/cassandraunit/test/junit6/CleanDataBetweenTestsTest.java) | Resetting state without restarting Cassandra: `CqlOperations`, `truncateKeyspace`, `cleanDataEmbeddedCassandra` |
+| [`FileCqlDataSetTest`](src/test/java/org/cassandraunit/test/junit6/FileCqlDataSetTest.java) | Loading a script from disk rather than the classpath |
 
 `CassandraUnitExtension` has no no-arg constructor — the dataset comes in through it — so it is used
-with `@RegisterExtension` on a `static` field, never `@ExtendWith`. The package name is historical:
-from 5.3.0 these run on **Jupiter 6**, and the API they use is unchanged.
+with `@RegisterExtension` on a `static` field, never `@ExtendWith`. From 5.3.0 these run on
+**Jupiter 6** — 6.1.3 here — and the API they use is unchanged from JUnit 5.
 
 ### JUnit 4
 
@@ -310,6 +341,22 @@ projects that have not migrated, and unaffected by the move to Jupiter 6. Needs
 | [`CQLScriptLoadWithoutKeyspaceCreationTest`](src/test/java/org/cassandraunit/test/cql/CQLScriptLoadWithoutKeyspaceCreationTest.java) | `keyspaceCreation = false` |
 | [`CQLScriptLoadWithNativeApproachTest`](src/test/java/org/cassandraunit/test/cql/CQLScriptLoadWithNativeApproachTest.java) | Manual start + load |
 | [`CQLScriptLoadWithExpectedDataSetRuleTest`](src/test/java/org/cassandraunit/test/cql/CQLScriptLoadWithExpectedDataSetRuleTest.java) | `@ExpectedCassandraDataSet` through a `RuleChain` |
+| [`RowDataSetRuleTest`](src/test/java/org/cassandraunit/test/cql/RowDataSetRuleTest.java) | A YAML row dataset through the `@Rule` — the same `CQLDataSet` the extension takes |
+| [`CqlAssertionsRuleTest`](src/test/java/org/cassandraunit/test/cql/CqlAssertionsRuleTest.java) | `CqlAssertions` on JUnit 4: a static import, no framework coupling |
+| [`IsolationRuleTest`](src/test/java/org/cassandraunit/test/cql/IsolationRuleTest.java) | The three `Isolation` modes, and `CqlOperations.truncateKeyspace` on its own |
+| [`TestcontainersRuleTest`](src/test/java/org/cassandraunit/test/cql/TestcontainersRuleTest.java) | Fixtures into a container, with both lifecycles hand-rolled |
+
+Two things have no JUnit 4 equivalent, and `TestcontainersRuleTest` shows what to do instead:
+
+- **No rule takes a session you supply.** `CassandraCQLUnit` and `AbstractCassandraUnit4CQLTestCase`
+  always start the embedded server; `CqlDataSetExtension` is Jupiter-only. Against your own
+  Cassandra, call `new CQLDataLoader(session).load(dataSet, isolation)` — it has always taken a
+  session. `ExpectedCassandraDataSetRule` is the exception: it takes a `Supplier<CqlSession>`, but
+  it only verifies, it does not load.
+- **Testcontainers 2.x dropped `@Rule` support.** `GenericContainer` no longer extends
+  `FailureDetectingExternalResource`, so `@ClassRule` does not compile; start and stop the container
+  in `@BeforeClass` / `@AfterClass`. There is no `disabledWithoutDocker` either —
+  `Assume.assumeTrue(...)` skips the class instead.
 
 ### Spring
 

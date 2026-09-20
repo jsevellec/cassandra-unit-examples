@@ -26,8 +26,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Loading fixtures through the {@link CqlSession} bean the Spring context already has. New in
  * 5.3.0, and the path for a Cassandra that is not the embedded one - Testcontainers, a shared
- * cluster, Astra. The embedded server stands in for the container here, so {@code mvn test} needs
- * no Docker; against a container only the property source changes.
+ * cluster, Astra. The embedded server stands in for the container here, so this example needs no
+ * Docker; against a container only the property source changes. See
+ * {@code org.cassandraunit.test.junit6.TestcontainersFixtureTest} for the container done for real.
  *
  * <p>{@link SpringSessions} lives in {@code cassandra-unit-dataset}, so it needs none of the
  * surefire {@code argLine} and has no JDK ceiling.

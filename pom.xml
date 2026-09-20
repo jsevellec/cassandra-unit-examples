@@ -31,6 +31,7 @@
         <spring.version>7.0.9</spring.version>
         <spring.boot.version>4.1.1</spring.boot.version>
         <logback.version>1.5.18</logback.version>
+        <testcontainers.version>2.0.5</testcontainers.version>
 
         <!--
           Cassandra 5.0 reaches deep into the JDK, so the embedded daemon needs the same JVM
@@ -218,6 +219,24 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-test-autoconfigure</artifactId>
             <version>${spring.boot.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!--
+          For TestcontainersFixtureTest, the one example needing Docker. Testcontainers 2.x renamed
+          every module - testcontainers-cassandra, not cassandra, which stops at 1.x. No
+          testcontainers-bom: it would have a say over jackson and undo the pin above.
+        -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-cassandra</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
+            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
 
