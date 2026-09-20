@@ -12,10 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * No rule, no base class: start the server and load the dataset by hand.
- *
- * <p>Useful when the test lifecycle is owned by something else. {@code startEmbeddedCassandra()}
- * is idempotent - the second and later calls in the same JVM are no-ops - so this is safe to
- * call from every test class in a shared fork.
+ * {@code startEmbeddedCassandra()} is idempotent, so every test class in a fork can call it.
  */
 public class CQLScriptLoadWithNativeApproachTest {
 

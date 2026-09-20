@@ -18,23 +18,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * The same rows in JSON, XML and CSV - the format comes from the file extension and nothing else.
  *
- * <p>All formats share one model (tables, rows, values), so the rules that matter are the same in
- * every one of them: an absent column is unset, values convert against the real column type, and a
- * single bare value counts as a collection of one. Only the syntax differs.
- *
- * <p><b>CSV is the exception worth knowing.</b> It is flat, so one file is one table, named after
- * the file - {@code rows/widget.csv} loads into {@code widget}. Collections are split on {@code |}.
- * And an empty field means <em>unset</em>: CSV has no way to say "explicitly null", deliberately,
- * because a {@code text} column can legitimately hold the string {@code NULL} and a sentinel would
- * corrupt it silently. {@link #csv_cannot_express_a_null_so_an_empty_field_is_unset()} is that
- * difference, demonstrated.
- *
- * <p>CSV also needs {@code com.fasterxml.jackson.dataformat:jackson-dataformat-csv} on the test
- * classpath. It is {@code optional} in cassandra-unit, so YAML, JSON and XML cost nothing; loading
- * a {@code .csv} without it fails immediately with a message saying exactly that.
- *
- * <p>This example drives {@link CQLDataLoader} directly rather than through an extension, because
- * each test loads a different file into a keyspace whose schema is built once.
+ * <p>CSV additionally needs {@code com.fasterxml.jackson.dataformat:jackson-dataformat-csv}, which
+ * is {@code optional} in cassandra-unit; YAML, JSON and XML cost nothing extra.
  */
 class RowDataSetFormatsTest {
 
@@ -51,20 +36,14 @@ class RowDataSetFormatsTest {
         session = EmbeddedCassandraServerHelper.getSession();
         loader = new CQLDataLoader(session);
 
-        // Loads only if the keyspace is not already there, and says whether it did.
         loader.loadIfKeyspaceAbsent(CQLDataSetFactory.fromClassPath("cql/widgetSchema.cql", KEYSPACE));
     }
 
-    /**
-     * Back to a known state without rebuilding the schema: empty every table, then put the one
-     * pre-existing row back. {@code truncateKeyspace} is public API as of 5.1.0.
-     */
     @BeforeEach
     void resetTheKeyspace() {
         CqlOperations.truncateKeyspace(session, KEYSPACE);
 
-        // keyspaceCreation and keyspaceDeletion both false: this dataset must not drop the
-        // keyspace whose schema was built once in @BeforeAll.
+        // false, false: keyspace creation and deletion off, so the schema survives.
         loader.load(CQLDataSetFactory.fromClassPath("cql/preexistingWidget.cql", false, false, KEYSPACE));
     }
 
@@ -95,13 +74,7 @@ class RowDataSetFormatsTest {
         assertTheFullRowConverted();
     }
 
-    /**
-     * The same file position that holds {@code null} in JSON and XML is empty in the CSV, and an
-     * empty field is unset - so the value already in the table survives, where the other two
-     * formats erased it.
-     *
-     * <p>When you need a tombstone, use YAML or JSON.
-     */
+    /** Where JSON and XML hold null, the CSV field is empty - use YAML or JSON for a tombstone. */
     @Test
     void csv_cannot_express_a_null_so_an_empty_field_is_unset() {
         loader.load(CQLDataSetFactory.fromClassPath("rows/widget.csv", false, false, KEYSPACE));
@@ -109,7 +82,6 @@ class RowDataSetFormatsTest {
         assertThat(widget(PREEXISTING_ROW).getString("label")).isEqualTo("preexisting");
     }
 
-    /** Identical in all three formats: the column type decides what each value becomes. */
     private void assertTheFullRowConverted() {
         Row row = widget(FULL_ROW);
 

@@ -9,15 +9,9 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 
 /**
- * {@link ExpectedCassandraDataSet} on JUnit 4 - the same annotation, through a second rule.
- *
- * <p>It is a sibling of {@link CassandraCQLUnit} rather than part of it, and the reason is a JUnit
- * 4 detail: {@code CassandraCQLUnit} is an {@code ExternalResource}, which is handed no
- * {@code Description} and therefore cannot see an annotation on the test method. A {@code TestRule}
- * can.
- *
- * <p>Order matters, so they are chained: the outer rule starts Cassandra and loads the dataset, and
- * the inner one verifies the expectation while that is still up.
+ * {@link ExpectedCassandraDataSet} on JUnit 4, through a second rule chained around
+ * {@link CassandraCQLUnit}: an {@code ExternalResource} cannot see an annotation on the test
+ * method, a {@code TestRule} can.
  */
 public class CQLScriptLoadWithExpectedDataSetRuleTest {
 

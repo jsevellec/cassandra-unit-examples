@@ -10,17 +10,8 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * {@link FileCQLDataSet} reads a script from the filesystem rather than the classpath - for
- * scripts that are generated at build time, or shipped with the application rather than the
- * tests.
- *
- * <p>Here the path points into {@code target/test-classes}, where Maven copies
- * {@code src/test/resources}, purely so the example needs no extra file.
- *
- * <p>Note the constructor sets are <em>not</em> identical to
- * {@link org.cassandraunit.dataset.cql.ClassPathCQLDataSet}: {@code FileCQLDataSet} has no
- * {@code (String, boolean keyspaceCreation, String keyspaceName)} overload. Use the four-arg
- * form when you need to name the keyspace.
+ * {@link FileCQLDataSet} reads a script from the filesystem rather than the classpath - here from
+ * Maven's copy of {@code src/test/resources}, so the example needs no extra file.
  */
 class FileCqlDataSetTest {
 

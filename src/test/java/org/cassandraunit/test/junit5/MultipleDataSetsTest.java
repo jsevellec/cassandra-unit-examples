@@ -11,13 +11,9 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Loading schema and data from separate scripts, which is what you want once a schema is
- * shared by several fixtures.
- *
- * <p>The order of the flags matters. The first load owns the keyspace - {@code (true, true)}
- * means "drop it if it is there, then create it" - and finishes by issuing a {@code USE}. The
- * second passes {@code (false, false)} so it neither drops nor recreates the keyspace, and
- * runs against the one the first load left selected on the session.
+ * Loading schema and data from separate scripts. The first load owns the keyspace
+ * ({@code true, true} drops then creates it, and issues the {@code USE}); the second passes
+ * {@code false, false} and runs against it.
  */
 class MultipleDataSetsTest {
 

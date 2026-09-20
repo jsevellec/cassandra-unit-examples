@@ -9,10 +9,8 @@ import org.junit.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * When the CQL script contains its own {@code CREATE KEYSPACE} (and a {@code USE}), pass
- * {@code keyspaceCreation = false} so cassandra-unit does not try to create one for you.
- *
- * <p>Queries then have to name the keyspace the script created.
+ * {@code keyspaceCreation = false} when the script has its own {@code CREATE KEYSPACE}; queries
+ * then have to name that keyspace.
  */
 public class CQLScriptLoadWithoutKeyspaceCreationTest {
 

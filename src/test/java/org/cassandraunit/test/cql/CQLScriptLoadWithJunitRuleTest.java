@@ -10,13 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * The JUnit 4 way: a {@code @Rule} that starts the embedded server and loads the dataset.
- *
- * <p>Still fully supported - it is kept here as the reference for projects that have not moved
- * to JUnit 5. New code should prefer
- * {@link org.cassandraunit.test.junit5.CassandraUnitExtensionTest}.
- *
- * <p>Running this alongside the Jupiter examples needs {@code junit-vintage-engine} on the
- * test classpath; see the pom.
+ * Running it alongside the Jupiter examples needs {@code junit-vintage-engine}; see the pom.
  */
 public class CQLScriptLoadWithJunitRuleTest {
 

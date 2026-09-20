@@ -16,17 +16,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * cassandra-unit inside a Spring test context.
- *
- * <p>There is no cassandra-unit-specific JUnit 5 extension for Spring: you use Spring's own
- * {@link SpringExtension} and plug cassandra-unit in as a {@code TestExecutionListener}.
- *
- * <p>{@link EmbeddedCassandra} is <em>mandatory</em> - the listener does a
- * {@code requireNonNull} on it, so {@link CassandraDataSet} on its own fails with an NPE.
- *
- * <p>{@link CassandraUnitTestExecutionListener} starts the server and reloads the dataset
- * before <em>every test method</em>, and cleans up after each one. For a single load per class
- * see {@link SpringCassandraUnitAnnotationTest}.
+ * cassandra-unit inside a Spring test context: Spring's own {@link SpringExtension} plus a
+ * cassandra-unit {@code TestExecutionListener}. {@link EmbeddedCassandra} is mandatory - the
+ * listener does a {@code requireNonNull} on it.
  */
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration
@@ -35,11 +27,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 @CassandraDataSet(value = "simple.cql", keyspace = "keyspaceNameToCreate")
 class SpringCQLScriptLoadTest {
 
-    /**
-     * Spring needs a context to bootstrap. A nested static {@code @Configuration} class is
-     * picked up automatically by the bare {@code @ContextConfiguration} above, which keeps the
-     * example self-contained - no XML file to go and find.
-     */
     @Configuration
     static class Config {
     }
@@ -54,7 +41,6 @@ class SpringCQLScriptLoadTest {
         assertThat(row.getString("value")).isEqualTo("myValue01");
     }
 
-    /** The listener reloads the dataset before each method, so this sees the same data. */
     @Test
     void should_reload_the_dataset_for_every_test_method() {
         CqlSession session = EmbeddedCassandraServerHelper.getSession();

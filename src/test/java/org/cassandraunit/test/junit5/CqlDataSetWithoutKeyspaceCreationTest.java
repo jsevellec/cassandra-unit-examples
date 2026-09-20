@@ -10,11 +10,8 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * When the CQL script creates its own keyspace, tell cassandra-unit to keep its hands off by
- * passing {@code keyspaceCreation = false}.
- *
- * <p>The dataset then has no keyspace name of its own, so the loader issues no {@code USE} and
- * queries have to name the keyspace the script created.
+ * {@code keyspaceCreation = false} when the CQL script creates its own keyspace. The loader then
+ * issues no {@code USE}, so queries have to name that keyspace.
  */
 class CqlDataSetWithoutKeyspaceCreationTest {
 

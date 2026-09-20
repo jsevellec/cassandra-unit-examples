@@ -9,13 +9,9 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Letting the OS pick the ports, so parallel builds on one machine cannot collide.
- *
- * <p>{@link EmbeddedCassandraServerHelper#CASSANDRA_RNDPORT_YML_FILE} is a bundled yaml with
- * all three ports set to {@code 0}. Ask the helper what it actually got - do not assume 9142.
- *
- * <p>Like {@link StartWithCustomCassandraYamlTest}, this needs its own JVM; see the
- * {@code isolated-config-tests} surefire execution in the pom.
+ * Letting the OS pick the ports via the bundled
+ * {@link EmbeddedCassandraServerHelper#CASSANDRA_RNDPORT_YML_FILE}, then asking the helper which
+ * port it got. Needs its own JVM - see the {@code isolated-config-tests} execution in the pom.
  */
 class StartWithRandomPortTest {
 
@@ -37,9 +33,7 @@ class StartWithRandomPortTest {
     void should_be_reachable_by_the_driver_on_whatever_port_it_got() {
         CqlSession session = EmbeddedCassandraServerHelper.getSession();
 
-        // A real query, not session.getMetadata().getKeyspaces(): schema metadata is
-        // refreshed asynchronously and is legitimately empty until something creates a
-        // keyspace, so asserting on it here would be a race.
+        // A real query, not session metadata: schema metadata is refreshed asynchronously.
         Row row = session.execute("select cluster_name from system.local").one();
 
         assertThat(row).isNotNull();

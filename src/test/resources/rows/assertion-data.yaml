@@ -1,5 +1,4 @@
-# The setup for the expected-dataset examples. Same format, same rules as an expectation - one file
-# could do both jobs.
+# Setup for the expected-dataset examples. Same format and rules as an expectation.
 
 widget:
   - id: 11111111-1111-1111-1111-111111111111

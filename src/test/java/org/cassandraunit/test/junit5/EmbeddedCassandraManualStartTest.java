@@ -12,13 +12,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * No extension: drive {@link EmbeddedCassandraServerHelper} and {@link CQLDataLoader} yourself.
- *
- * <p>This is what you want when something other than JUnit owns the lifecycle, or when you
- * need to do work between starting the server and loading data.
- *
- * <p>There is exactly one embedded Cassandra and one {@link CqlSession} per JVM, and
- * {@code startEmbeddedCassandra()} is a no-op once one is running - so calling it from several
- * test classes in a shared fork is fine.
+ * {@code startEmbeddedCassandra()} is a no-op once one is running, so several test classes can
+ * share a JVM.
  */
 class EmbeddedCassandraManualStartTest {
 

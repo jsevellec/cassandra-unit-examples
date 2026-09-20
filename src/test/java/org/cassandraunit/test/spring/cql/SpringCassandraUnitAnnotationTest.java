@@ -15,20 +15,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * The short form: {@code @CassandraUnit} is a composed annotation that means
- * {@code @EmbeddedCassandra @CassandraDataSet}, both at their defaults.
- *
- * <p>Defaulting {@code @CassandraDataSet} means two things:
- * <ul>
- *   <li>the keyspace is {@code cassandra_unit_keyspace};</li>
- *   <li>the dataset is found by convention at
- *       {@code <package>/<SimpleName>-dataset.cql} on the classpath - here
- *       {@code org/cassandraunit/test/spring/cql/SpringCassandraUnitAnnotationTest-dataset.cql}.</li>
- * </ul>
- *
- * <p>{@link CassandraUnitDependencyInjectionTestExecutionListener} loads the dataset once per
- * test <em>instance</em> rather than once per method, and only cleans up after the class. Use
- * it when loading is expensive and the tests do not mutate the data.
+ * {@code @CassandraUnit} is a composed {@code @EmbeddedCassandra @CassandraDataSet}, both at
+ * their defaults: keyspace {@code cassandra_unit_keyspace}, and the dataset found by convention
+ * at {@code <package>/<SimpleName>-dataset.cql} on the classpath.
  */
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration

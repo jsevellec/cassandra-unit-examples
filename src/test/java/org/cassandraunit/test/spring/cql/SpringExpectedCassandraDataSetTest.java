@@ -13,14 +13,9 @@ import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 /**
- * {@link ExpectedCassandraDataSet} in a Spring test - nothing to wire up.
- *
- * <p>The cassandra-unit listeners check the annotation themselves, and they do it <b>before</b>
- * their cleanup drops every non-system keyspace. An expectation verified after that would find
- * nothing at all, so the ordering is not an accident.
- *
- * <p>{@link CassandraUnitTestExecutionListener} reloads the dataset before every test method, which
- * is what lets this test mutate the data and still leave the next one a clean database.
+ * {@link ExpectedCassandraDataSet} in a Spring test - nothing to wire up: the cassandra-unit
+ * listeners check the annotation themselves, before their cleanup drops every non-system
+ * keyspace.
  */
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration

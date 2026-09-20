@@ -1,9 +1,5 @@
-# Strict, which is the default: the widget table must hold exactly these three rows. A table this
-# file does not name - event - is not asserted at all.
-#
-# Only the columns mentioned here are compared, plus the primary key, and nothing else is even
-# selected. `created` is listed but the test ignores it: it is the timestamp the code under test
-# wrote, and there is no value it could be expected to equal.
+# Strict, the default: widget must hold exactly these rows. The event table, unnamed here, is not
+# asserted. `created` is listed but ignored by the test - it is a timestamp the code wrote.
 
 widget:
   - id: 11111111-1111-1111-1111-111111111111

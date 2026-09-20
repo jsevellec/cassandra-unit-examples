@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  The same rows again, in XML. Every value is a string here, which costs nothing: the column type
-  in the database decides what it becomes. XML has no null of its own, hence null="true".
-
-  Parsed with the JDK's own parser, with DOCTYPE and external entities disabled - a dataset is
-  data, and has no business reading your filesystem.
--->
+<!-- The same rows in XML. Every value is a string; the column type decides what it becomes.
+     XML has no null of its own, hence null="true". -->
 <dataset>
     <table name="widget">
         <row>

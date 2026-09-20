@@ -36,10 +36,10 @@ with the `update` shortened. Everything else about it is real, and it runs:
 
 ```bash
 git clone https://github.com/jsevellec/cassandra-unit-examples.git
-cd cassandra-unit-examples && mvn test    # 63 tests, ~1 min, no Docker
+cd cassandra-unit-examples && mvn test    # 78 tests, a minute or two, no Docker
 ```
 
-A real Apache Cassandra 5.0 starts inside the test JVM — three startups for the whole suite, one
+A real Apache Cassandra 5.0 starts inside the test JVM — four startups for the whole suite, one
 shared and one per example that brings its own `cassandra.yaml`. Everything resolves from Maven
 Central; nothing has to be built first. **Use JDK 17**, which the build enforces; the reason is
 [below](#use-this-in-your-own-project).
@@ -63,6 +63,8 @@ fixtures load through a session you supply, and none of the setup below applies.
 | start from the plain embedded-server case | [`CassandraUnitExtensionTest`](src/test/java/org/cassandraunit/test/junit5/CassandraUnitExtensionTest.java) |
 | stay on JUnit 4 | [`CQLScriptLoadWithJunitRuleTest`](src/test/java/org/cassandraunit/test/cql/CQLScriptLoadWithJunitRuleTest.java), [`CQLScriptLoadWithExpectedDataSetRuleTest`](src/test/java/org/cassandraunit/test/cql/CQLScriptLoadWithExpectedDataSetRuleTest.java) |
 | use Spring Test | [`SpringExpectedCassandraDataSetTest`](src/test/java/org/cassandraunit/test/spring/cql/SpringExpectedCassandraDataSetTest.java) |
+| use Spring Boot, with nothing wired up | [`SpringBootEmbeddedCassandraTest`](src/test/java/org/cassandraunit/test/spring/boot/SpringBootEmbeddedCassandraTest.java) |
+| load fixtures through my Spring `CqlSession` bean | [`SpringSessionsFixtureTest`](src/test/java/org/cassandraunit/test/spring/session/SpringSessionsFixtureTest.java) |
 | bring my own `cassandra.yaml` | [`StartWithCustomCassandraYamlTest`](src/test/java/org/cassandraunit/test/StartWithCustomCassandraYamlTest.java) |
 
 That table is the shortlist. Every file under `src/test` is a working example — including the
@@ -269,7 +271,7 @@ The fixture layer is its own artifact, with no `cassandra-all`, no jamm agent an
 <dependency>
     <groupId>org.cassandraunit</groupId>
     <artifactId>cassandra-unit-dataset</artifactId>
-    <version>5.2.0</version>
+    <version>5.3.0</version>
     <scope>test</scope>
 </dependency>
 ```
@@ -278,7 +280,7 @@ None of the surefire `argLine` above is needed for it — that block is the pric
 server, not of the fixtures. The example here supplies the embedded server's session so that
 `mvn test` needs no Docker; against a container only the supplier changes.
 
-### JUnit 5 with the embedded server
+### JUnit 5 / 6 with the embedded server
 
 `src/test/java/org/cassandraunit/test/junit5/`
 
@@ -292,12 +294,14 @@ server, not of the fixtures. The example here supplies the embedded server's ses
 | [`FileCqlDataSetTest`](src/test/java/org/cassandraunit/test/junit5/FileCqlDataSetTest.java) | Loading a script from disk rather than the classpath |
 
 `CassandraUnitExtension` has no no-arg constructor — the dataset comes in through it — so it is used
-with `@RegisterExtension` on a `static` field, never `@ExtendWith`.
+with `@RegisterExtension` on a `static` field, never `@ExtendWith`. The package name is historical:
+from 5.3.0 these run on **Jupiter 6**, and the API they use is unchanged.
 
 ### JUnit 4
 
 `src/test/java/org/cassandraunit/test/cql/` — still fully supported, kept as the reference for
-projects that have not migrated. Needs `junit-vintage-engine` to run alongside Jupiter.
+projects that have not migrated, and unaffected by the move to Jupiter 6. Needs
+`junit-vintage-engine` to run alongside Jupiter; it is versioned with Jupiter, so 6.1.3 here.
 
 | Example | Shows |
 |---|---|
@@ -317,11 +321,111 @@ projects that have not migrated. Needs `junit-vintage-engine` to run alongside J
 | [`SpringCassandraUnitAnnotationTest`](src/test/java/org/cassandraunit/test/spring/cql/SpringCassandraUnitAnnotationTest.java) | The composed `@CassandraUnit` annotation and dataset-by-convention |
 | [`SpringExpectedCassandraDataSetTest`](src/test/java/org/cassandraunit/test/spring/cql/SpringExpectedCassandraDataSetTest.java) | A row dataset as the fixture, and `@ExpectedCassandraDataSet` as the assertion |
 
-There is no cassandra-unit-specific JUnit 5 extension for Spring: use Spring's own
+There is no cassandra-unit-specific Jupiter extension for Spring: use Spring's own
 `SpringExtension` and add cassandra-unit as a `TestExecutionListener`. **`@EmbeddedCassandra` is
 mandatory** — the listener does a `requireNonNull` on it, so `@CassandraDataSet` alone fails with
 an NPE. `@CassandraDataSet` takes several locations and any supported extension, so schema and rows
 can be listed together; the first one drops and creates the keyspace.
+
+### Spring Boot — nothing to wire
+
+`src/test/java/org/cassandraunit/test/spring/boot/`
+
+New in 5.3.0, and the thing issue #217 asked for in 2017. Annotate a `@SpringBootTest` with
+`@EmbeddedCassandra` and Boot's own auto-configured `CqlSession` connects to the embedded node:
+
+```java
+@SpringBootTest(classes = WidgetBootTest.BootApplication.class)
+@TestExecutionListeners(value = CassandraUnitTestExecutionListener.class,
+        mergeMode = MergeMode.MERGE_WITH_DEFAULTS)
+@EmbeddedCassandra
+@CassandraDataSet(value = {"cql/widgetSchema.cql", "rows/widget.yaml"}, keyspace = "mykeyspace")
+class WidgetBootTest {
+
+    @Autowired
+    CqlSession session;          // Boot's bean, pointed at the embedded node by nothing you wrote
+
+    @Test
+    void readsTheFixture() {
+        long rows = session.execute("select count(*) from mykeyspace.widget").one().getLong(0);
+        assertThat(rows).isEqualTo(4);
+    }
+}
+```
+
+There is no contact point in that file, and no `application.yml` anywhere in this repo. Before the
+context refreshes, cassandra-unit publishes the node's real address into the test's `Environment`:
+
+| Property | Value |
+|---|---|
+| `spring.cassandra.contact-points` | the host the node bound to |
+| `spring.cassandra.port` | the port it really got |
+| `spring.cassandra.local-datacenter` | `datacenter1` |
+
+This exists because the defaults do not line up. Boot and the driver both default to **9042**,
+while the embedded node listens on **9142** — deliberately, so it cannot collide with a Cassandra
+you are already running locally.
+
+| Example | Shows |
+|---|---|
+| [`SpringBootEmbeddedCassandraTest`](src/test/java/org/cassandraunit/test/spring/boot/SpringBootEmbeddedCassandraTest.java) | The whole idea, plus the precedence rule below |
+| [`SpringBootRandomPortTest`](src/test/java/org/cassandraunit/test/spring/boot/SpringBootRandomPortTest.java) | `cu-cassandra-rndport.yaml`, the case a properties file cannot express |
+| [`ExposedPropertiesOptOutTest`](src/test/java/org/cassandraunit/test/spring/boot/ExposedPropertiesOptOutTest.java) | `exposeProperties = false`, when you want your own values |
+
+The mechanism is a `ContextCustomizerFactory` in `META-INF/spring.factories`. It returns `null` for
+any class without the annotation, contributing nothing — not even a context cache key entry — so a
+project that uses this for one test class does not load the embedded server for the rest.
+
+Four things to know before you copy that snippet:
+
+- **The published values win.** The property source is added *first*, so it outranks
+  `@TestPropertySource`, inlined properties and `application-test.yml`. If you previously bridged
+  this gap by hand, your literal is now overridden by the address the node is really listening on.
+  `@EmbeddedCassandra(exposeProperties = false)` keeps your own values instead — and note that
+  opting out silences the publishing, not the server: the node still starts.
+- **`MERGE_WITH_DEFAULTS` is not optional.** A bare `@TestExecutionListeners` *replaces* the default
+  listeners, and dependency injection is one of them, so `@Autowired` silently stops happening and
+  your fields stay null.
+- **Do not set `spring.cassandra.keyspace-name`.** Boot would build the session with
+  `withKeyspace(...)` during the refresh — before any dataset had a chance to create that keyspace —
+  and the context would fail to start. Name the keyspace in `@CassandraDataSet` and qualify your
+  queries, as above. Qualifying is needed anyway: the dataset's `USE` applied to cassandra-unit's
+  own session, not to Boot's bean.
+- **Boot 4 split auto-configuration into one module per technology.** `CassandraAutoConfiguration`
+  now lives in `spring-boot-cassandra`; on Boot 3 it was in `spring-boot-autoconfigure`.
+
+#### Boot against a Cassandra you already run
+
+`SpringSessions` loads the same fixtures through a `CqlSession` **bean** rather than starting
+anything, which is the path for Testcontainers, a shared cluster or Astra:
+
+```java
+@RegisterExtension
+static final CqlDataSetExtension fixtures = CqlDataSetExtension
+        .using(SpringSessions.fromApplicationContext())
+        .schemaOnce(CQLDataSetFactory.fromClassPath("cql/schema.cql", "mykeyspace"))
+        .rowsPerTest(CQLDataSetFactory.fromClassPath("rows/widget.yaml", false, false, "mykeyspace"))
+        .build();
+```
+
+| Example | Shows |
+|---|---|
+| [`SpringSessionsFixtureTest`](src/test/java/org/cassandraunit/test/spring/session/SpringSessionsFixtureTest.java) | The bean-by-type lookup, and the Testcontainers shape in a comment |
+| [`SpringSessionsByBeanNameTest`](src/test/java/org/cassandraunit/test/spring/session/SpringSessionsByBeanNameTest.java) | `fromApplicationContext("name")`, for a context with two sessions |
+
+It lives in `cassandra-unit-dataset`, so it needs **none** of the surefire `argLine` below and has
+no JDK ceiling. `spring-test` and `spring-context` are optional dependencies there — they reach you
+only because you already have Spring.
+
+Three things bite. Never add `closingSession()`: the bean belongs to the context, and Jupiter runs
+`afterAll` in reverse registration order, so a closed bean would stay in the shared context cache.
+Leave the `CqlSession` test-method parameter **bare** — annotating it makes `SpringExtension` claim
+it too and Jupiter fails with `Discovered multiple competing ParameterResolvers`. And
+`@DirtiesContext` is fine at class level but not `AFTER_EACH_TEST_METHOD`, because the session is
+resolved once per class.
+
+Pick one path per class: the annotations load through the embedded server, `CqlDataSetExtension`
+loads through a session you own, and combining them means two ideas of where the data went.
 
 ### Custom server configuration
 
@@ -332,7 +436,9 @@ can be listed together; the first one drops and creates the keyspace.
 | [`StartWithCustomCassandraYamlTest`](src/test/java/org/cassandraunit/test/StartWithCustomCassandraYamlTest.java) | Your own `cassandra.yaml` — see [`another-cassandra.yaml`](src/test/resources/another-cassandra.yaml) |
 | [`StartWithRandomPortTest`](src/test/java/org/cassandraunit/test/StartWithRandomPortTest.java) | `CASSANDRA_RNDPORT_YML_FILE`, so parallel builds on one machine cannot collide |
 
-Both run in their own JVM. **One Cassandra per JVM is a hard constraint**: `DatabaseDescriptor`,
+Both run in their own JVM, as does
+[`SpringBootRandomPortTest`](src/test/java/org/cassandraunit/test/spring/boot/SpringBootRandomPortTest.java).
+**One Cassandra per JVM is a hard constraint**: `DatabaseDescriptor`,
 `Schema` and `StorageService` hold static state that cannot be reset in-process, so a JVM is pinned
 to the first configuration it starts. See the `isolated-config-tests` surefire execution in
 [`pom.xml`](pom.xml) for how the suite is split. For the same reason every example class here owns
@@ -343,7 +449,7 @@ so any pre-4.x file (`start_rpc`, `rpc_port`, `thrift_*`, the `*_in_ms` spelling
 all:
 
 ```bash
-unzip -p ~/.m2/repository/org/cassandraunit/cassandra-unit/5.2.0/cassandra-unit-5.2.0.jar cu-cassandra.yaml
+unzip -p ~/.m2/repository/org/cassandraunit/cassandra-unit/5.3.0/cassandra-unit-5.3.0.jar cu-cassandra.yaml
 ```
 
 ## Use this in your own project
@@ -359,22 +465,34 @@ packages on your classpath for no benefit.
 <dependency>
     <groupId>org.cassandraunit</groupId>
     <artifactId>cassandra-unit</artifactId>
-    <version>5.2.0</version>
+    <version>5.3.0</version>
     <scope>test</scope>
 </dependency>
 <!-- only if you use the Spring integration -->
 <dependency>
     <groupId>org.cassandraunit</groupId>
     <artifactId>cassandra-unit-spring</artifactId>
-    <version>5.2.0</version>
+    <version>5.3.0</version>
     <scope>test</scope>
 </dependency>
 ```
 
+**5.3.0 requires JUnit 6.** Spring 7's `SpringExtension` calls `ExtensionContext.Store.computeIfAbsent`,
+which JUnit 5 spells `getOrComputeIfAbsent`, so Spring 7 cannot run on JUnit 5 at all — and every
+Jupiter extension cassandra-unit publishes is compiled against it. If you are on JUnit 5, stay on
+cassandra-unit 5.2.0 with Spring 6.2 and Boot 3. The JUnit 4 `@Rule` integration is unaffected and
+still runs through the vintage engine, now 6.1.3.
+
 JUnit is **optional** in cassandra-unit — declare whichever platform you use (`junit-jupiter`, or
 `junit` 4 plus `junit-vintage-engine` for the `@Rule`). Spring is `provided` in
 `cassandra-unit-spring`, and provided scope is not transitive, so declare `spring-test` and
-`spring-context` yourself. CSV datasets need
+`spring-context` yourself. Spring Boot is not a dependency of cassandra-unit at all — the module
+only publishes a `ContextCustomizerFactory` that Spring Test discovers — so a Boot test needs
+`spring-boot`, `spring-boot-autoconfigure`, `spring-boot-cassandra`, `spring-boot-test` and
+`spring-boot-test-autoconfigure` declared at test scope. Prefer those five explicit artifacts over
+`spring-boot-starter-test`: the starter brings its own JUnit, AssertJ and spring-test versions, and
+`spring-boot-dependencies` manages jackson and snakeyaml, which would quietly override the
+[jackson pin](#pin-jackson--this-one-is-not-optional) below. CSV datasets need
 `com.fasterxml.jackson.dataformat:jackson-dataformat-csv`, which is `optional` in cassandra-unit
 and therefore not transitive; YAML, JSON and XML need nothing. The fluent `CqlAssertions` are
 `optional` in the same way and need `assertj-core` — without it, touching that class raises
@@ -397,7 +515,7 @@ either.
 </dependencyManagement>
 ```
 
-cassandra-unit 5.2.0 otherwise leaves a consumer with a mixed family: `jackson-databind` 2.22.1
+cassandra-unit 5.3.0 otherwise leaves a consumer with a mixed family: `jackson-databind` 2.22.1
 arrives through `cassandra-unit-dataset`, while `jackson-core` and `jackson-annotations` come from
 `cassandra-all` at 2.19.2 and win on declaration order. The embedded daemon then dies during commit
 log initialisation with `NoClassDefFoundError: com/fasterxml/jackson/annotation/JsonSerializeAs`,
@@ -468,7 +586,7 @@ of it.
 <summary><b>Why JDK 17, exactly</b></summary>
 
 The embedded daemon runs *inside the build JVM*, Cassandra 5.0 supports only JDK 11 and 17, and
-spring-test 6.2 needs 17 — and on JDK 24+ Cassandra's `ThreadAwareSecurityManager` calls the
+spring-test 7.0 needs 17 — and on JDK 24+ Cassandra's `ThreadAwareSecurityManager` calls the
 now-removed `System::setSecurityManager` and throws. This build enforces `[17,18)` so you get a
 sentence instead of a stack trace.
 
@@ -492,6 +610,16 @@ patch are cassandra-unit's own. The driver version never appears in it.
 | `cassandra-unit` | 5.0.8 | same | 17 only |
 | `cassandra-unit-spring` | via `cassandra-unit` | same | 17 only |
 
+The test platform is a separate axis, and 5.3.0 moved it:
+
+| cassandra-unit | JUnit | Spring | Spring Boot |
+|---|---|---|---|
+| 5.3.0 | Jupiter **6** | 7.x | 4.x |
+| 5.0.0 – 5.2.0 | Jupiter 5 | 6.x | 3.x |
+
+These move together rather than independently: Spring 7 requires JUnit 6, and Boot 4 requires
+Spring 7.
+
 `4.3.1.0` is the trap in the history: it tracked the *driver*, and embeds Cassandra **3.11.5**, not
 4. The driver is not managed in cassandra-unit's `dependencyManagement`, so you can pin your own
 4.x in yours.
@@ -508,10 +636,12 @@ patch are cassandra-unit's own. The driver version never appears in it.
 | `DEFAULT_TMP_DIR` = `target/embeddedCassandra` | `${java.io.tmpdir}/cassandra-unit`, and it now really relocates data, commitlog, hints and caches |
 | `cu-loader` / `cu-starter` CLI, `cassandra-unit-shaded` | Gone |
 | JUnit 4 and Hamcrest on your classpath whether you wanted them or not | Both optional — declare what you use |
-| JUnit 5 | `CassandraUnitExtension` (5.0.0), and `CqlDataSetExtension` for a session you own (5.1.0) |
+| JUnit 5 | `CassandraUnitExtension` (5.0.0), and `CqlDataSetExtension` for a session you own (5.1.0). Jupiter **6** as of 5.3.0 |
 | `readTimeoutMillis` was stored and ignored | Now actually applied, so queries can time out. Also `setRequestTimeout(Duration)` |
 | Nothing asserted the end state | `@ExpectedCassandraDataSet` (5.1.0), and fluent `CqlAssertions` (5.2.0) |
 | A fixture had to be a file | It can be a Java builder instead — `CQLDataSetFactory.builder(...)` (5.2.0) |
+| Spring Boot had to be told where Cassandra was | `@EmbeddedCassandra` publishes `spring.cassandra.*` itself, so Boot's auto-configured `CqlSession` needs no wiring (5.3.0) |
+| Fixtures could not use a `CqlSession` your context already had | `SpringSessions.fromApplicationContext()` (5.3.0) |
 
 ## Notes
 

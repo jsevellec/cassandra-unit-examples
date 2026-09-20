@@ -22,13 +22,14 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>17</maven.compiler.release>
 
-        <cassandra-unit.version>5.2.0</cassandra-unit.version>
-        <junit.jupiter.version>5.14.4</junit.jupiter.version>
+        <cassandra-unit.version>5.3.0</cassandra-unit.version>
+        <junit.jupiter.version>6.1.3</junit.jupiter.version>
         <junit4.version>4.13.2</junit4.version>
         <assertj.version>3.27.7</assertj.version>
         <!-- The jackson-bom cassandra-unit's own parent imports; see dependencyManagement below. -->
         <jackson.version>2.22.1</jackson.version>
-        <spring.version>6.2.19</spring.version>
+        <spring.version>7.0.9</spring.version>
+        <spring.boot.version>4.1.1</spring.boot.version>
         <logback.version>1.5.18</logback.version>
 
         <!--
@@ -183,6 +184,43 @@
             <scope>test</scope>
         </dependency>
 
+        <!--
+          Spring Boot is not a dependency of cassandra-unit, so a Boot test declares its own.
+          Five explicit artifacts rather than spring-boot-starter-test: the starter and
+          spring-boot-dependencies would override the jackson-bom pinned above.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot</artifactId>
+            <version>${spring.boot.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            <version>${spring.boot.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- Boot 4 moved CassandraAutoConfiguration here from spring-boot-autoconfigure. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-cassandra</artifactId>
+            <version>${spring.boot.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-test</artifactId>
+            <version>${spring.boot.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-test-autoconfigure</artifactId>
+            <version>${spring.boot.version}</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- An SLF4J backend, so the ~3s Cassandra boot is observable when it goes wrong. -->
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -280,6 +318,7 @@
                             <excludes>
                                 <exclude>**/StartWithCustomCassandraYamlTest.java</exclude>
                                 <exclude>**/StartWithRandomPortTest.java</exclude>
+                                <exclude>**/SpringBootRandomPortTest.java</exclude>
                             </excludes>
                         </configuration>
                     </execution>
@@ -291,6 +330,7 @@
                             <includes>
                                 <include>**/StartWithCustomCassandraYamlTest.java</include>
                                 <include>**/StartWithRandomPortTest.java</include>
+                                <include>**/SpringBootRandomPortTest.java</include>
                             </includes>
                         </configuration>
                     </execution>
